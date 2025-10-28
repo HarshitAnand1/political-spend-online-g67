@@ -53,10 +53,10 @@ export async function GET(request) {
     let totalSpend = 0;
     let totalImpressions = 0;
     const partyStats = {
-      BJP: { count: 0, spend: 0 },
-      INC: { count: 0, spend: 0 },
-      AAP: { count: 0, spend: 0 },
-      Others: { count: 0, spend: 0 }
+      BJP: { count: 0, spend: 0, impressions: 0 },
+      INC: { count: 0, spend: 0, impressions: 0 },
+      AAP: { count: 0, spend: 0, impressions: 0 },
+      Others: { count: 0, spend: 0, impressions: 0 }
     };
 
     result.rows.forEach(row => {
@@ -78,18 +78,36 @@ export async function GET(request) {
 
       partyStats[adParty].count++;
       partyStats[adParty].spend += avgSpend;
+      partyStats[adParty].impressions += avgImpressions;
     });
 
     return NextResponse.json({
       totalAds,
       totalPages: uniquePages.size,
       totalSpend: parseFloat((totalSpend / 100000).toFixed(2)), // in Lakhs
+      totalImpressions: parseInt(totalImpressions),
       avgImpressions: totalAds > 0 ? parseInt(totalImpressions / totalAds) : 0,
       partyBreakdown: {
-        BJP: parseFloat((partyStats.BJP.spend / 100000).toFixed(2)),
-        INC: parseFloat((partyStats.INC.spend / 100000).toFixed(2)),
-        AAP: parseFloat((partyStats.AAP.spend / 100000).toFixed(2)),
-        Others: parseFloat((partyStats.Others.spend / 100000).toFixed(2))
+        BJP: {
+          spend: parseFloat((partyStats.BJP.spend / 100000).toFixed(2)),
+          count: partyStats.BJP.count,
+          impressions: parseInt(partyStats.BJP.impressions)
+        },
+        INC: {
+          spend: parseFloat((partyStats.INC.spend / 100000).toFixed(2)),
+          count: partyStats.INC.count,
+          impressions: parseInt(partyStats.INC.impressions)
+        },
+        AAP: {
+          spend: parseFloat((partyStats.AAP.spend / 100000).toFixed(2)),
+          count: partyStats.AAP.count,
+          impressions: parseInt(partyStats.AAP.impressions)
+        },
+        Others: {
+          spend: parseFloat((partyStats.Others.spend / 100000).toFixed(2)),
+          count: partyStats.Others.count,
+          impressions: parseInt(partyStats.Others.impressions)
+        }
       }
     });
 

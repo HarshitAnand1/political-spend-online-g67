@@ -5,6 +5,7 @@ import { AnimatePresence, motion } from 'framer-motion'
 import SearchBar from './SearchBar'
 import FilterPanel from './FilterPanel'
 import AdCard from './AdCard'
+import AdModal from './AdModal'
 
 export default function Explorer() {
   const search = useSearchParams()
@@ -18,6 +19,7 @@ export default function Explorer() {
   const [loading, setLoading] = useState(true)
   const [ads, setAds] = useState([])
   const [sortBy, setSortBy] = useState(search.get('sort') || 'date')
+  const [selectedAd, setSelectedAd] = useState(null)
 
   const fetchAds = () => {
     setLoading(true)
@@ -83,7 +85,9 @@ export default function Explorer() {
               <AnimatePresence mode="popLayout">
                 {filtered.map((ad) => (
                   <motion.div key={ad.id} layout initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.15 }}>
-                    <AdCard ad={ad} />
+                    <div onClick={() => setSelectedAd(ad)} className="cursor-pointer">
+                      <AdCard ad={ad} />
+                    </div>
                   </motion.div>
                 ))}
               </AnimatePresence>
@@ -91,6 +95,9 @@ export default function Explorer() {
           )}
         </div>
       </div>
+      
+      {/* Ad Preview Modal */}
+      {selectedAd && <AdModal ad={selectedAd} onClose={() => setSelectedAd(null)} />}
     </div>
   )
 }

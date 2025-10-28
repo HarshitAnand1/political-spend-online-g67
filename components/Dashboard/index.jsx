@@ -4,6 +4,9 @@ import FiltersPanel from './FiltersPanel'
 import KPICards from './KPICards'
 import { SpendLineChart, SpendPieChart } from './Charts'
 import SpendTable from './SpendTable'
+import TopAdvertisers from './TopAdvertisers'
+import GeographicBreakdown from './GeographicBreakdown'
+import RegionalAnalytics from './RegionalAnalytics'
 import { addDays, format } from './utils/date'
 
 export default function Dashboard() {
@@ -12,6 +15,9 @@ export default function Dashboard() {
   const [stats, setStats] = useState({ totalAds: 0, totalPages: 0, totalSpend: 0, partyBreakdown: {} })
   const [spendData, setSpendData] = useState({})
   const [lineSeries, setLineSeries] = useState({ labels: [], BJP: [], INC: [], AAP: [], Others: [] })
+  const [topAdvertisers, setTopAdvertisers] = useState([])
+  const [geoData, setGeoData] = useState([])
+  const [regionalData, setRegionalData] = useState([])
 
   const fetchDashboardData = () => {
     setLoading(true)
@@ -33,12 +39,18 @@ export default function Dashboard() {
     Promise.all([
       fetch(`/api/stats?${params}`).then(r => r.json()),
       fetch(`/api/analytics/spend?${params}`).then(r => r.json()),
-      fetch(`/api/analytics/trends?${params}`).then(r => r.json())
+      fetch(`/api/analytics/trends?${params}`).then(r => r.json()),
+      fetch(`/api/analytics/top-advertisers?${params}&limit=10`).then(r => r.json()),
+      fetch(`/api/analytics/geography?${params}&limit=10`).then(r => r.json()),
+      fetch(`/api/analytics/regions?${params}`).then(r => r.json())
     ])
-      .then(([statsData, spendResponse, trendsResponse]) => {
+      .then(([statsData, spendResponse, trendsResponse, topAdsData, geoResponse, regionalResponse]) => {
         setStats(statsData || { totalAds: 0, totalPages: 0, totalSpend: 0, partyBreakdown: {} })
         setSpendData(spendResponse.spendData || {})
         setLineSeries(trendsResponse.lineSeries || { labels: [], BJP: [], INC: [], AAP: [], Others: [] })
+        setTopAdvertisers(topAdsData.advertisers || [])
+        setGeoData(geoResponse.states || [])
+        setRegionalData(regionalResponse.regions || [])
       })
       .catch(error => {
         console.error('Error fetching dashboard data:', error)
@@ -56,7 +68,21 @@ export default function Dashboard() {
 
   // Compute totals for KPI and pie from party breakdown (convert Lakhs to Crores)
   const totals = useMemo(() => {
-    const lakhs = stats.partyBreakdown || spendData
+    const breakdown = stats.partyBreakdown || {}
+    // Check if breakdown has new format with nested objects or old format with direct values
+    const bjpValue = typeof breakdown.BJP === 'object' ? breakdown.BJP.spend : breakdown.BJP
+    const incValue = typeof breakdown.INC === 'object' ? breakdown.INC.spend : breakdown.INC
+    const aapValue = typeof breakdown.AAP === 'object' ? breakdown.AAP.spend : breakdown.AAP
+    const othersValue = typeof breakdown.Others === 'object' ? breakdown.Others.spend : breakdown.Others
+    
+    // Fallback to spendData if breakdown not available
+    const lakhs = {
+      BJP: bjpValue || spendData.BJP || 0,
+      INC: incValue || spendData.INC || 0,
+      AAP: aapValue || spendData.AAP || 0,
+      Others: othersValue || spendData.Others || 0
+    }
+    
     return {
       BJP: parseFloat(((lakhs.BJP || 0) / 100).toFixed(2)),
       INC: parseFloat(((lakhs.INC || 0) / 100).toFixed(2)),
@@ -118,23 +144,34 @@ export default function Dashboard() {
           </div>
         ) : (
           <>
-                        <KPICards totals={totals} stats={stats} />
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="bg-white p-4 rounded-lg border border-slate-200 dark:bg-slate-900">
-                <h3 className="font-semibold mb-2">Spend Over Time</h3>
+            <KPICards totals={totals} stats={stats} />
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+              <div className="bg-white p-4 rounded-lg border border-slate-200 dark:bg-slate-900 shadow-sm">
+                <h3 className="font-semibold mb-2 text-slate-800 dark:text-white">Spend Over Time</h3>
                 <div className="h-64 rounded-md">
                   <SpendLineChart labels={line.labels} series={line} />
                 </div>
               </div>
-              <div className="bg-white p-4 rounded-lg border border-slate-200 dark:bg-slate-900">
-                <h3 className="font-semibold mb-2">Party-wise Spend Distribution</h3>
+              <div className="bg-white p-4 rounded-lg border border-slate-200 dark:bg-slate-900 shadow-sm">
+                <h3 className="font-semibold mb-2 text-slate-800 dark:text-white">Party-wise Spend Distribution</h3>
                 <div className="h-64 rounded-md">
                   <SpendPieChart totals={totals} />
                 </div>
               </div>
             </div>
-            <div className="bg-white p-4 rounded-lg border border-slate-200 dark:bg-slate-900">
-              <h3 className="font-semibold mb-2">Top Spenders</h3>
+            
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+              <TopAdvertisers data={topAdvertisers} />
+              <GeographicBreakdown data={geoData} />
+            </div>
+            
+            <div className="mb-6">
+              <RegionalAnalytics data={regionalData} />
+            </div>
+            
+            <div className="bg-white p-4 rounded-lg border border-slate-200 dark:bg-slate-900 shadow-sm">
+              <h3 className="font-semibold mb-2 text-slate-800 dark:text-white">Top Spenders by Party</h3>
               <SpendTable rows={tableRows} />
             </div>
           </>

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { query } from '@/lib/db';
 import { classifyParty, formatSpendRange } from '@/lib/partyUtils';
+import { classifyLocations, formatLocationSummary } from '@/lib/geoUtils';
 
 export async function GET(request) {
   try {
@@ -88,6 +89,24 @@ export async function GET(request) {
     const ads = result.rows.map(row => {
       const party = classifyParty(row.page_id, row.bylines);
       const partyColors = { BJP: '#FF9933', INC: '#138808', AAP: '#0073e6', Others: '#64748B' };
+      
+      // Classify geographic locations
+      const geoClassification = classifyLocations(row.target_locations);
+      
+      // Parse target_locations if it's a string, otherwise use as-is
+      let locations = row.target_locations;
+      if (typeof locations === 'string') {
+        try {
+          locations = JSON.parse(locations);
+        } catch (e) {
+          locations = null;
+        }
+      }
+      
+      const firstLocation = Array.isArray(locations) && locations.length > 0 
+        ? locations[0]?.name || 'Unknown' 
+        : 'Unknown';
+      
       return {
         id: row.id,
         title: row.page_id || 'Unknown Ad',
@@ -98,8 +117,13 @@ export async function GET(request) {
         spendLower: row.spend_lower,
         spendUpper: row.spend_upper,
         impressions: `${(row.impressions_lower || 0).toLocaleString()} - ${(row.impressions_upper || 0).toLocaleString()}`,
-        state: row.target_locations ? JSON.parse(row.target_locations)[0]?.name || 'Unknown' : 'Unknown',
+        state: firstLocation,
         targetLocations: row.target_locations,
+        // Geographic classification
+        region: geoClassification.primaryRegion,
+        isNational: geoClassification.isNational,
+        stateCount: geoClassification.stateCount,
+        locationSummary: formatLocationSummary(geoClassification),
         platforms: row.publisher_platforms,
         startDate: row.ad_delivery_start_time,
         endDate: row.ad_delivery_stop_time,
