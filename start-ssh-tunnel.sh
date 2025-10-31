@@ -20,7 +20,7 @@ if [ "$#" -ge 1 ]; then
 	HOSTS="$1"
 else
 	# Read HOSTS from env or fall back to a curated list. Update this list when you get a new IP.
-  HOSTS=${HOSTS:-"10.23.59.50 172.16.10.159 172.16.12.166 192.168.29.140"}
+  HOSTS=${HOSTS:-"172.16.10.127 172.16.12.223 10.23.59.50 172.16.10.159 172.16.12.166 192.168.29.140"}
 fi
 
 echo "Using ssh key: $SSH_KEY"

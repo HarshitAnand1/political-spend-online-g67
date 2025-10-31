@@ -19,66 +19,93 @@ export async function GET(request) {
     const limit = parseInt(searchParams.get('limit') || 20);
     const offset = parseInt(searchParams.get('offset') || 0);
 
-    let queryText = `
-      SELECT 
-        id, ad_snapshot_url, ad_delivery_start_time, ad_delivery_stop_time,
-        page_id, spend_lower, spend_upper, impressions_lower, impressions_upper,
-        target_locations, publisher_platforms, bylines, currency,
-        estimated_audience_size_lower, estimated_audience_size_upper
-      FROM ads WHERE 1=1
-    `;
-    
+    let queryText;
     const params = [];
     let paramCount = 1;
+    let useStateJoin = false;
 
+    // Optimized state filtering using ad_regions JOIN
+    if (state && state !== 'All India') {
+      queryText = `
+        SELECT DISTINCT
+          a.id, a.page_id, a.bylines, a.ad_snapshot_url, a.ad_delivery_start_time,
+          a.ad_delivery_stop_time, a.currency, a.target_locations, a.publisher_platforms,
+          a.spend_lower, a.spend_upper, a.impressions_lower, a.impressions_upper,
+          a.estimated_audience_size_lower, a.estimated_audience_size_upper,
+          r.spend_percentage, r.impressions_percentage
+        FROM ads a
+        JOIN ad_regions r ON a.id = r.ad_id
+        WHERE r.region = $${paramCount}
+      `;
+      params.push(state);
+      paramCount++;
+      useStateJoin = true;
+    } else if (states) {
+      const stateList = states.split(',').filter(s => s.trim());
+      if (stateList.length > 0) {
+        queryText = `
+          SELECT DISTINCT
+            a.id, a.page_id, a.bylines, a.ad_snapshot_url, a.ad_delivery_start_time,
+            a.ad_delivery_stop_time, a.currency, a.target_locations, a.publisher_platforms,
+            a.spend_lower, a.spend_upper, a.impressions_lower, a.impressions_upper,
+            a.estimated_audience_size_lower, a.estimated_audience_size_upper,
+            r.spend_percentage, r.impressions_percentage
+          FROM ads a
+          JOIN ad_regions r ON a.id = r.ad_id
+          WHERE r.region = ANY($${paramCount}::text[])
+        `;
+        params.push(stateList);
+        paramCount++;
+        useStateJoin = true;
+      }
+    }
+
+    // Default query if no state filtering
+    if (!queryText) {
+      queryText = `
+        SELECT
+          id, ad_snapshot_url, ad_delivery_start_time, ad_delivery_stop_time,
+          page_id, spend_lower, spend_upper, impressions_lower, impressions_upper,
+          target_locations, publisher_platforms, bylines, currency,
+          estimated_audience_size_lower, estimated_audience_size_upper
+        FROM ads WHERE 1=1
+      `;
+    }
+
+    // Add date filters
+    const tablePrefix = useStateJoin ? 'a.' : '';
     if (datePreset) {
       if (datePreset === 'Last 24 hours') {
-        queryText += ` AND ad_delivery_start_time >= NOW() - INTERVAL '24 hours'`;
+        queryText += ` AND ${tablePrefix}ad_delivery_start_time >= NOW() - INTERVAL '24 hours'`;
       } else if (datePreset === 'Last 7 days') {
-        queryText += ` AND ad_delivery_start_time >= NOW() - INTERVAL '7 days'`;
+        queryText += ` AND ${tablePrefix}ad_delivery_start_time >= NOW() - INTERVAL '7 days'`;
       } else if (datePreset === 'Last 30 days') {
-        queryText += ` AND ad_delivery_start_time >= NOW() - INTERVAL '30 days'`;
+        queryText += ` AND ${tablePrefix}ad_delivery_start_time >= NOW() - INTERVAL '30 days'`;
       }
     }
 
     if (startDate) {
-      queryText += ` AND ad_delivery_start_time >= $${paramCount}`;
+      queryText += ` AND ${tablePrefix}ad_delivery_start_time >= $${paramCount}`;
       params.push(startDate);
       paramCount++;
     }
 
     if (endDate) {
-      queryText += ` AND ad_delivery_stop_time <= $${paramCount}`;
+      queryText += ` AND ${tablePrefix}ad_delivery_stop_time <= $${paramCount}`;
       params.push(endDate);
       paramCount++;
     }
 
-    if (state && state !== 'All India') {
-      queryText += ` AND target_locations::text ILIKE $${paramCount}`;
-      params.push(`%${state}%`);
-      paramCount++;
-    } else if (states) {
-      const stateList = states.split(',').filter(s => s.trim());
-      if (stateList.length > 0) {
-        const stateConditions = stateList.map((_, idx) => {
-          params.push(`%${stateList[idx]}%`);
-          return `target_locations::text ILIKE $${paramCount + idx}`;
-        });
-        queryText += ` AND (${stateConditions.join(' OR ')})`;
-        paramCount += stateList.length;
-      }
-    }
-
     if (search) {
-      queryText += ` AND (bylines ILIKE $${paramCount} OR page_id ILIKE $${paramCount})`;
+      queryText += ` AND (${tablePrefix}bylines ILIKE $${paramCount} OR ${tablePrefix}page_id ILIKE $${paramCount})`;
       params.push(`%${search}%`);
       paramCount++;
     }
 
     if (sortBy === 'spend') {
-      queryText += ` ORDER BY (spend_lower + spend_upper) DESC`;
+      queryText += ` ORDER BY (${tablePrefix}spend_lower + ${tablePrefix}spend_upper) DESC`;
     } else {
-      queryText += ` ORDER BY ad_delivery_start_time DESC`;
+      queryText += ` ORDER BY ${tablePrefix}ad_delivery_start_time DESC`;
     }
 
     queryText += ` LIMIT $${paramCount} OFFSET $${paramCount + 1}`;
@@ -88,10 +115,31 @@ export async function GET(request) {
 
     const ads = result.rows.map(row => {
       const party = classifyParty(row.page_id, row.bylines);
-      const partyColors = { BJP: '#FF9933', INC: '#138808', AAP: '#0073e6', Others: '#64748B' };
+      const partyColors = {
+        BJP: '#FF9933',
+        INC: '#138808',
+        AAP: '#0073e6',
+        'JD(U)': '#006400',
+        RJD: '#008000',
+        'Jan Suraaj': '#FF6347',
+        Others: '#64748B'
+      };
       
-      // Classify geographic locations
-      const geoClassification = classifyLocations(row.target_locations);
+      // Classify geographic locations with error handling
+      let geoClassification;
+      try {
+        geoClassification = classifyLocations(row.target_locations);
+      } catch (e) {
+        console.error('Error classifying locations:', e);
+        geoClassification = {
+          states: [],
+          regions: {},
+          primaryRegion: 'Unknown',
+          isNational: false,
+          stateCount: 0,
+          uniqueStates: []
+        };
+      }
       
       // Parse target_locations if it's a string, otherwise use as-is
       let locations = row.target_locations;
@@ -120,9 +168,9 @@ export async function GET(request) {
         state: firstLocation,
         targetLocations: row.target_locations,
         // Geographic classification
-        region: geoClassification.primaryRegion,
-        isNational: geoClassification.isNational,
-        stateCount: geoClassification.stateCount,
+        region: geoClassification.primaryRegion || 'Unknown',
+        isNational: geoClassification.isNational || false,
+        stateCount: geoClassification.stateCount || 0,
         locationSummary: formatLocationSummary(geoClassification),
         platforms: row.publisher_platforms,
         startDate: row.ad_delivery_start_time,

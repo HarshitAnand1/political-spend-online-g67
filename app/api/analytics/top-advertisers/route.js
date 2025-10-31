@@ -11,40 +11,59 @@ export async function GET(request) {
     const party = searchParams.get('party');
     const limit = parseInt(searchParams.get('limit') || '10');
 
-    let queryText = `
-      SELECT 
-        page_id,
-        bylines,
-        COUNT(*) as ad_count,
-        SUM((spend_lower + spend_upper) / 2) as total_spend,
-        SUM((impressions_lower + impressions_upper) / 2) as total_impressions
-      FROM ads
-      WHERE 1=1
-    `;
-
+    // Optimized query: Use ad_regions JOIN for state filtering
+    let queryText;
     const params = [];
     let paramCount = 1;
 
+    if (state && state !== 'All India') {
+      // Use ad_regions table for efficient state filtering
+      queryText = `
+        SELECT
+          a.page_id,
+          a.bylines,
+          p.page_name,
+          COUNT(DISTINCT a.id) as ad_count,
+          SUM((a.spend_lower + a.spend_upper) / 2 * r.spend_percentage) as total_spend,
+          SUM((a.impressions_lower + a.impressions_upper) / 2 * r.impressions_percentage) as total_impressions
+        FROM ads a
+        LEFT JOIN pages p ON a.page_id = p.page_id
+        JOIN ad_regions r ON a.id = r.ad_id
+        WHERE r.region = $${paramCount}
+      `;
+      params.push(state);
+      paramCount++;
+    } else {
+      // No state filter - query ads directly
+      queryText = `
+        SELECT
+          a.page_id,
+          a.bylines,
+          p.page_name,
+          COUNT(*) as ad_count,
+          SUM((a.spend_lower + a.spend_upper) / 2) as total_spend,
+          SUM((a.impressions_lower + a.impressions_upper) / 2) as total_impressions
+        FROM ads a
+        LEFT JOIN pages p ON a.page_id = p.page_id
+        WHERE 1=1
+      `;
+    }
+
     if (startDate) {
-      queryText += ` AND ad_delivery_start_time >= $${paramCount}`;
+      queryText += ` AND a.ad_delivery_start_time >= $${paramCount}`;
       params.push(startDate);
       paramCount++;
     }
 
     if (endDate) {
-      queryText += ` AND ad_delivery_stop_time <= $${paramCount}`;
+      queryText += ` AND a.ad_delivery_stop_time <= $${paramCount}`;
       params.push(endDate);
       paramCount++;
     }
 
-    if (state && state !== 'All India') {
-      queryText += ` AND target_locations::text ILIKE $${paramCount}`;
-      params.push(`%${state}%`);
-      paramCount++;
-    }
-
     queryText += `
-      GROUP BY page_id, bylines
+      GROUP BY a.page_id, a.bylines, p.page_name
+      HAVING SUM((a.spend_lower + a.spend_upper) / 2) > 0
       ORDER BY total_spend DESC
       LIMIT $${paramCount}
     `;
@@ -59,9 +78,10 @@ export async function GET(request) {
     let advertisers = result.rows.map(row => {
       const adParty = classifyParty(row.page_id, row.bylines);
       const spend = parseFloat(row.total_spend || 0);
-      
+
       return {
         page_id: row.page_id,
+        name: row.page_name || row.bylines || `Page ${row.page_id}` || 'Unknown Advertiser',
         party: adParty,
         ad_count: parseInt(row.ad_count),
         spend: formatCurrency(spend),

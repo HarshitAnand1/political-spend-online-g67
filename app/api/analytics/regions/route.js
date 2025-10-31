@@ -1,7 +1,21 @@
 import { NextResponse } from 'next/server';
 import { query } from '@/lib/db';
 import { classifyParty, formatCurrency } from '@/lib/partyUtils';
-import { classifyLocations, getRegion, REGION_COLORS } from '@/lib/geoUtils';
+import { INDIAN_STATES, normalizeStateName } from '@/lib/geoUtils';
+
+// Regional color scheme
+const REGION_COLORS = {
+  'Delhi': '#FF9933',
+  'Maharashtra': '#138808',
+  'Karnataka': '#0073e6',
+  'Uttar Pradesh': '#9333EA',
+  'Tamil Nadu': '#F59E0B',
+  'West Bengal': '#FF6B6B',
+  'Gujarat': '#06B6D4',
+  'Rajasthan': '#EC4899',
+  'Kerala': '#10B981',
+  'Telangana': '#8B5CF6'
+};
 
 export async function GET(request) {
   try {
@@ -10,30 +24,34 @@ export async function GET(request) {
     const endDate = searchParams.get('endDate');
     const party = searchParams.get('party');
 
+    // Query to get regional data from ad_regions table
     let queryText = `
-      SELECT 
-        target_locations,
-        page_id,
-        bylines,
-        spend_lower,
-        spend_upper,
-        impressions_lower,
-        impressions_upper
-      FROM ads
-      WHERE target_locations IS NOT NULL
+      SELECT
+        r.region,
+        a.page_id,
+        a.bylines,
+        a.spend_lower,
+        a.spend_upper,
+        a.impressions_lower,
+        a.impressions_upper,
+        r.spend_percentage,
+        r.impressions_percentage
+      FROM ad_regions r
+      JOIN ads a ON r.ad_id = a.id
+      WHERE 1=1
     `;
 
     const params = [];
     let paramCount = 1;
 
     if (startDate) {
-      queryText += ` AND ad_delivery_start_time >= $${paramCount}`;
+      queryText += ` AND a.ad_delivery_start_time >= $${paramCount}`;
       params.push(startDate);
       paramCount++;
     }
 
     if (endDate) {
-      queryText += ` AND ad_delivery_stop_time <= $${paramCount}`;
+      queryText += ` AND a.ad_delivery_stop_time <= $${paramCount}`;
       params.push(endDate);
       paramCount++;
     }
@@ -41,69 +59,77 @@ export async function GET(request) {
     const result = await query(queryText, params);
 
     // Aggregate by region
-    const regionMap = {
-      'North': { totalSpend: 0, totalImpressions: 0, adCount: 0, parties: { BJP: 0, INC: 0, AAP: 0, Others: 0 }, states: new Set() },
-      'South': { totalSpend: 0, totalImpressions: 0, adCount: 0, parties: { BJP: 0, INC: 0, AAP: 0, Others: 0 }, states: new Set() },
-      'East': { totalSpend: 0, totalImpressions: 0, adCount: 0, parties: { BJP: 0, INC: 0, AAP: 0, Others: 0 }, states: new Set() },
-      'West': { totalSpend: 0, totalImpressions: 0, adCount: 0, parties: { BJP: 0, INC: 0, AAP: 0, Others: 0 }, states: new Set() },
-      'Central': { totalSpend: 0, totalImpressions: 0, adCount: 0, parties: { BJP: 0, INC: 0, AAP: 0, Others: 0 }, states: new Set() },
-      'Northeast': { totalSpend: 0, totalImpressions: 0, adCount: 0, parties: { BJP: 0, INC: 0, AAP: 0, Others: 0 }, states: new Set() }
-    };
-
-    let nationalCampaigns = 0;
+    const regionMap = {};
     let totalAds = 0;
+    const seenAds = new Set();
 
     result.rows.forEach(row => {
       const adParty = classifyParty(row.page_id, row.bylines);
-      
+
       // Filter by party if specified
       if (party && party !== 'All Parties' && adParty !== party) {
         return;
       }
 
-      totalAds++;
-      const classification = classifyLocations(row.target_locations);
-      
-      if (classification.isNational) {
-        nationalCampaigns++;
+      const regionName = row.region || 'Unknown';
+
+      // Filter out non-Indian states/UTs
+      // Check if the region name (after normalization) is a valid Indian state/UT
+      const normalizedRegion = normalizeStateName(regionName);
+      if (!normalizedRegion || !INDIAN_STATES[normalizedRegion]) {
+        // Skip this entry if it's not a valid Indian state/UT
+        return;
       }
 
+      if (!regionMap[regionName]) {
+        regionMap[regionName] = {
+          totalSpend: 0,
+          totalImpressions: 0,
+          adCount: 0,
+          parties: { BJP: 0, INC: 0, AAP: 0, 'JD(U)': 0, RJD: 0, 'Jan Suraaj': 0, Others: 0 }
+        };
+      }
+
+      // Calculate spend and impressions based on percentages
       const avgSpend = ((row.spend_lower || 0) + (row.spend_upper || 0)) / 2;
       const avgImpressions = ((row.impressions_lower || 0) + (row.impressions_upper || 0)) / 2;
 
-      // Add to each region the ad targets
-      classification.states.forEach(state => {
-        const region = state.region;
-        if (regionMap[region]) {
-          regionMap[region].totalSpend += avgSpend;
-          regionMap[region].totalImpressions += avgImpressions;
-          regionMap[region].adCount++;
-          regionMap[region].parties[adParty] += avgSpend;
-          regionMap[region].states.add(state.name);
-        }
-      });
+      const regionalSpend = avgSpend * (row.spend_percentage || 1);
+      const regionalImpressions = avgImpressions * (row.impressions_percentage || 1);
+
+      regionMap[regionName].totalSpend += regionalSpend;
+      regionMap[regionName].totalImpressions += regionalImpressions;
+      regionMap[regionName].adCount++;
+      regionMap[regionName].parties[adParty] += regionalSpend;
+
+      seenAds.add(`${row.page_id}`);
     });
+
+    totalAds = seenAds.size;
 
     // Convert to array and format
     const regions = Object.entries(regionMap).map(([name, data]) => {
       const dominantParty = Object.entries(data.parties).reduce((a, b) => b[1] > a[1] ? b : a)[0];
-      
+
       return {
         region: name,
         spend: formatCurrency(data.totalSpend),
         spendRaw: data.totalSpend,
         impressions: parseInt(data.totalImpressions),
         adCount: data.adCount,
-        stateCount: data.states.size,
-        states: Array.from(data.states),
+        stateCount: 1, // Each region is essentially a state/location
+        states: [name],
         dominantParty: dominantParty,
         partyBreakdown: {
           BJP: formatCurrency(data.parties.BJP),
           INC: formatCurrency(data.parties.INC),
           AAP: formatCurrency(data.parties.AAP),
+          'JD(U)': formatCurrency(data.parties['JD(U)']),
+          RJD: formatCurrency(data.parties.RJD),
+          'Jan Suraaj': formatCurrency(data.parties['Jan Suraaj']),
           Others: formatCurrency(data.parties.Others)
         },
-        color: REGION_COLORS[name]
+        color: REGION_COLORS[name] || '#64748B'
       };
     }).sort((a, b) => b.spendRaw - a.spendRaw);
 
@@ -114,7 +140,15 @@ export async function GET(request) {
       region.percentage = totalSpend > 0 ? ((region.spendRaw / totalSpend) * 100).toFixed(1) : '0';
     });
 
-    return NextResponse.json({ 
+    // Determine national campaigns (ads targeting multiple regions)
+    const adsPerRegionCount = {};
+    result.rows.forEach(row => {
+      const adId = `${row.page_id}`;
+      adsPerRegionCount[adId] = (adsPerRegionCount[adId] || 0) + 1;
+    });
+    const nationalCampaigns = Object.values(adsPerRegionCount).filter(count => count >= 3).length;
+
+    return NextResponse.json({
       regions,
       nationalCampaigns,
       totalAds,
