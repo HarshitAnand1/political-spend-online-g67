@@ -1,6 +1,10 @@
 "use client"
 import Flatpickr from 'react-flatpickr'
 import 'flatpickr/dist/themes/airbnb.css'
+import { INDIAN_STATES } from '@/lib/geoUtils'
+
+// All Indian states and UTs organized by region
+const ALL_STATES = Object.keys(INDIAN_STATES).sort();
 
 export default function FiltersPanel({ filters, setFilters, onApply }) {
   return (
@@ -28,10 +32,9 @@ export default function FiltersPanel({ filters, setFilters, onApply }) {
             onChange={(e) => setFilters((f) => ({ ...f, state: e.target.value }))}
           >
             <option>All India</option>
-            <option>Uttar Pradesh</option>
-            <option>Maharashtra</option>
-            <option>Delhi</option>
-            <option>West Bengal</option>
+            {ALL_STATES.map(state => (
+              <option key={state} value={state}>{state}</option>
+            ))}
           </select>
         </div>
         <div>
@@ -45,6 +48,9 @@ export default function FiltersPanel({ filters, setFilters, onApply }) {
             <option>BJP</option>
             <option>INC</option>
             <option>AAP</option>
+            <option>JD(U)</option>
+            <option>RJD</option>
+            <option>Jan Suraaj</option>
           </select>
         </div>
         <button

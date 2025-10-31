@@ -10,20 +10,38 @@ export async function GET(request) {
     const state = searchParams.get('state');
     const party = searchParams.get('party');
 
-    // Query to get all ads with relevant fields
-    let queryText = `
-      SELECT 
-        page_id,
-        bylines,
-        target_locations,
-        spend_lower,
-        spend_upper
-      FROM ads
-      WHERE 1=1
-    `;
-
+    // Optimized query: Use ad_regions JOIN for state filtering
+    let queryText;
     const params = [];
     let paramCount = 1;
+
+    if (state && state !== 'All India') {
+      // Use ad_regions table for efficient state filtering
+      queryText = `
+        SELECT DISTINCT
+          a.page_id,
+          a.bylines,
+          a.spend_lower,
+          a.spend_upper,
+          r.spend_percentage
+        FROM ads a
+        JOIN ad_regions r ON a.id = r.ad_id
+        WHERE r.region = $${paramCount}
+      `;
+      params.push(state);
+      paramCount++;
+    } else {
+      // No state filter - query ads directly
+      queryText = `
+        SELECT
+          page_id,
+          bylines,
+          spend_lower,
+          spend_upper
+        FROM ads
+        WHERE 1=1
+      `;
+    }
 
     if (startDate) {
       queryText += ` AND ad_delivery_start_time >= $${paramCount}`;
@@ -37,13 +55,6 @@ export async function GET(request) {
       paramCount++;
     }
 
-    // State filtering - check if target_locations contains the state
-    if (state && state !== 'All India') {
-      queryText += ` AND target_locations::text ILIKE $${paramCount}`;
-      params.push(`%${state}%`);
-      paramCount++;
-    }
-
     const result = await query(queryText, params);
 
     // Classify ads by party and aggregate spending
@@ -51,12 +62,21 @@ export async function GET(request) {
       BJP: 0,
       INC: 0,
       AAP: 0,
+      'JD(U)': 0,
+      RJD: 0,
+      'Jan Suraaj': 0,
       Others: 0
     };
 
     result.rows.forEach(row => {
       const adParty = classifyParty(row.page_id, row.bylines);
-      const avgSpend = ((row.spend_lower || 0) + (row.spend_upper || 0)) / 2;
+      let avgSpend = ((row.spend_lower || 0) + (row.spend_upper || 0)) / 2;
+
+      // Apply regional percentage if state filter is active
+      if (state && state !== 'All India' && row.spend_percentage) {
+        avgSpend *= row.spend_percentage;
+      }
+
       partySpend[adParty] += avgSpend;
     });
 

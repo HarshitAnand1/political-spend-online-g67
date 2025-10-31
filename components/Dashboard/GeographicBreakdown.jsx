@@ -14,8 +14,11 @@ export default function GeographicBreakdown({ data = [] }) {
 
   const partyColors = {
     BJP: 'bg-orange-500',
-    INC: 'bg-sky-500',
-    AAP: 'bg-blue-700',
+    INC: 'bg-green-600',
+    AAP: 'bg-blue-600',
+    'JD(U)': 'bg-green-800',
+    RJD: 'bg-green-500',
+    'Jan Suraaj': 'bg-red-500',
     Others: 'bg-slate-500'
   }
 
@@ -24,7 +27,7 @@ export default function GeographicBreakdown({ data = [] }) {
   return (
     <div className="bg-white dark:bg-slate-900 p-6 rounded-lg border border-slate-200 dark:border-slate-700">
       <h3 className="text-lg font-semibold mb-4 text-slate-800 dark:text-white">
-        Top States by Ad Spend
+        Top Locations by Ad Spend
       </h3>
       <div className="space-y-3">
         {data.map((state, idx) => (

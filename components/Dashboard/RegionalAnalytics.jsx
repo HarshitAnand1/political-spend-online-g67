@@ -16,6 +16,9 @@ export default function RegionalAnalytics({ data = [] }) {
     BJP: '#FF9933',
     INC: '#138808',
     AAP: '#0073e6',
+    'JD(U)': '#15803d',
+    RJD: '#22c55e',
+    'Jan Suraaj': '#ef4444',
     Others: '#64748B'
   }
 

@@ -14,8 +14,11 @@ export default function TopAdvertisers({ data = [] }) {
 
   const partyColors = {
     BJP: 'bg-orange-500',
-    INC: 'bg-sky-500',
-    AAP: 'bg-blue-700',
+    INC: 'bg-green-600',
+    AAP: 'bg-blue-600',
+    'JD(U)': 'bg-green-800',
+    RJD: 'bg-green-500',
+    'Jan Suraaj': 'bg-red-500',
     Others: 'bg-slate-500'
   }
 
@@ -36,7 +39,7 @@ export default function TopAdvertisers({ data = [] }) {
               </div>
               <div className="flex-1 min-w-0">
                 <p className="font-medium text-sm text-slate-800 dark:text-white truncate">
-                  {advertiser.page_id || 'Unknown'}
+                  {advertiser.name || 'Unknown'}
                 </p>
                 <div className="flex items-center gap-2 mt-1">
                   <span className={`inline-block px-2 py-0.5 rounded text-xs font-semibold text-white ${partyColors[advertiser.party] || partyColors.Others}`}>

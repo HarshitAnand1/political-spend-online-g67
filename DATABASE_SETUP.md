@@ -15,7 +15,7 @@ You need to keep TWO terminal windows open:
 
 #### Terminal 1: SSH Tunnel
 ```bash
-ssh -i ~/.ssh/id_ed25519 -L 15432:localhost:5432 sumitsihag@172.16.12.166 -N
+ssh -i ~/.ssh/id_ed25519 -L 15432:localhost:5432 sumitsihag@172.16.10.127 -N
 ```
 This creates a tunnel forwarding local port 15432 to the remote PostgreSQL server on port 5432.
 
@@ -182,7 +182,7 @@ lib/db.js (Connection Pool)
     ↓
 localhost:15432 (SSH Tunnel)
     ↓
-172.16.12.166:5432 (Remote PostgreSQL)
+172.16.10.127:5432 (Remote PostgreSQL)
     ↓
 political_ads_db
 ```

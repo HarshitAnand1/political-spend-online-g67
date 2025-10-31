@@ -6,7 +6,6 @@ import { SpendLineChart, SpendPieChart } from './Charts'
 import SpendTable from './SpendTable'
 import TopAdvertisers from './TopAdvertisers'
 import GeographicBreakdown from './GeographicBreakdown'
-import RegionalAnalytics from './RegionalAnalytics'
 import { addDays, format } from './utils/date'
 
 export default function Dashboard() {
@@ -14,10 +13,9 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true)
   const [stats, setStats] = useState({ totalAds: 0, totalPages: 0, totalSpend: 0, partyBreakdown: {} })
   const [spendData, setSpendData] = useState({})
-  const [lineSeries, setLineSeries] = useState({ labels: [], BJP: [], INC: [], AAP: [], Others: [] })
+  const [lineSeries, setLineSeries] = useState({ labels: [], BJP: [], INC: [], AAP: [], 'JD(U)': [], RJD: [], 'Jan Suraaj': [], Others: [] })
   const [topAdvertisers, setTopAdvertisers] = useState([])
   const [geoData, setGeoData] = useState([])
-  const [regionalData, setRegionalData] = useState([])
 
   const fetchDashboardData = () => {
     setLoading(true)
@@ -41,16 +39,14 @@ export default function Dashboard() {
       fetch(`/api/analytics/spend?${params}`).then(r => r.json()),
       fetch(`/api/analytics/trends?${params}`).then(r => r.json()),
       fetch(`/api/analytics/top-advertisers?${params}&limit=10`).then(r => r.json()),
-      fetch(`/api/analytics/geography?${params}&limit=10`).then(r => r.json()),
-      fetch(`/api/analytics/regions?${params}`).then(r => r.json())
+      fetch(`/api/analytics/geography?${params}&limit=10`).then(r => r.json())
     ])
-      .then(([statsData, spendResponse, trendsResponse, topAdsData, geoResponse, regionalResponse]) => {
+      .then(([statsData, spendResponse, trendsResponse, topAdsData, geoResponse]) => {
         setStats(statsData || { totalAds: 0, totalPages: 0, totalSpend: 0, partyBreakdown: {} })
         setSpendData(spendResponse.spendData || {})
         setLineSeries(trendsResponse.lineSeries || { labels: [], BJP: [], INC: [], AAP: [], Others: [] })
         setTopAdvertisers(topAdsData.advertisers || [])
         setGeoData(geoResponse.states || [])
-        setRegionalData(regionalResponse.regions || [])
       })
       .catch(error => {
         console.error('Error fetching dashboard data:', error)
@@ -73,20 +69,29 @@ export default function Dashboard() {
     const bjpValue = typeof breakdown.BJP === 'object' ? breakdown.BJP.spend : breakdown.BJP
     const incValue = typeof breakdown.INC === 'object' ? breakdown.INC.spend : breakdown.INC
     const aapValue = typeof breakdown.AAP === 'object' ? breakdown.AAP.spend : breakdown.AAP
+    const jduValue = typeof breakdown['JD(U)'] === 'object' ? breakdown['JD(U)'].spend : breakdown['JD(U)']
+    const rjdValue = typeof breakdown.RJD === 'object' ? breakdown.RJD.spend : breakdown.RJD
+    const janSuraajValue = typeof breakdown['Jan Suraaj'] === 'object' ? breakdown['Jan Suraaj'].spend : breakdown['Jan Suraaj']
     const othersValue = typeof breakdown.Others === 'object' ? breakdown.Others.spend : breakdown.Others
-    
+
     // Fallback to spendData if breakdown not available
     const lakhs = {
       BJP: bjpValue || spendData.BJP || 0,
       INC: incValue || spendData.INC || 0,
       AAP: aapValue || spendData.AAP || 0,
+      'JD(U)': jduValue || spendData['JD(U)'] || 0,
+      RJD: rjdValue || spendData.RJD || 0,
+      'Jan Suraaj': janSuraajValue || spendData['Jan Suraaj'] || 0,
       Others: othersValue || spendData.Others || 0
     }
-    
+
     return {
       BJP: parseFloat(((lakhs.BJP || 0) / 100).toFixed(2)),
       INC: parseFloat(((lakhs.INC || 0) / 100).toFixed(2)),
       AAP: parseFloat(((lakhs.AAP || 0) / 100).toFixed(2)),
+      'JD(U)': parseFloat(((lakhs['JD(U)'] || 0) / 100).toFixed(2)),
+      RJD: parseFloat(((lakhs.RJD || 0) / 100).toFixed(2)),
+      'Jan Suraaj': parseFloat(((lakhs['Jan Suraaj'] || 0) / 100).toFixed(2)),
       Others: parseFloat(((lakhs.Others || 0) / 100).toFixed(2))
     }
   }, [stats, spendData])
@@ -98,6 +103,9 @@ export default function Dashboard() {
       BJP: (lineSeries.BJP || []).map(v => parseFloat((v / 100).toFixed(2))),
       INC: (lineSeries.INC || []).map(v => parseFloat((v / 100).toFixed(2))),
       AAP: (lineSeries.AAP || []).map(v => parseFloat((v / 100).toFixed(2))),
+      'JD(U)': (lineSeries['JD(U)'] || []).map(v => parseFloat((v / 100).toFixed(2))),
+      RJD: (lineSeries.RJD || []).map(v => parseFloat((v / 100).toFixed(2))),
+      'Jan Suraaj': (lineSeries['Jan Suraaj'] || []).map(v => parseFloat((v / 100).toFixed(2))),
       Others: (lineSeries.Others || []).map(v => parseFloat((v / 100).toFixed(2)))
     }
   }, [lineSeries])
@@ -165,11 +173,7 @@ export default function Dashboard() {
               <TopAdvertisers data={topAdvertisers} />
               <GeographicBreakdown data={geoData} />
             </div>
-            
-            <div className="mb-6">
-              <RegionalAnalytics data={regionalData} />
-            </div>
-            
+
             <div className="bg-white p-4 rounded-lg border border-slate-200 dark:bg-slate-900 shadow-sm">
               <h3 className="font-semibold mb-2 text-slate-800 dark:text-white">Top Spenders by Party</h3>
               <SpendTable rows={tableRows} />

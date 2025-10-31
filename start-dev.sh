@@ -30,7 +30,7 @@ if lsof -Pi :15432 -sTCP:LISTEN -t >/dev/null 2>&1; then
 else
     echo -e "${YELLOW}⚠ Warning: Port 15432 is not active${NC}"
     echo -e "Make sure your SSH tunnel is running:"
-    echo -e "ssh -i ~/.ssh/id_ed25519 -L 15432:localhost:5432 sumitsihag@172.16.12.166 -N\n"
+    echo -e "ssh -i ~/.ssh/id_ed25519 -L 15432:localhost:5432 sumitsihag@172.16.10.127 -N\n"
 fi
 
 # Check if node_modules exists

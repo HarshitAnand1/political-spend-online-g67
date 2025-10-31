@@ -11,24 +11,56 @@ export function SpendLineChart({ labels, series }) {
       series.BJP && {
         label: 'BJP',
         data: series.BJP,
-        borderColor: '#F97316',
-        backgroundColor: '#F9731633',
+        borderColor: '#FF9933',
+        backgroundColor: '#FF993333',
         fill: true,
         tension: 0.3,
       },
       series.INC && {
         label: 'INC',
         data: series.INC,
-        borderColor: '#0EA5E9',
-        backgroundColor: '#0EA5E933',
+        borderColor: '#138808',
+        backgroundColor: '#13880833',
         fill: true,
         tension: 0.3,
       },
       series.AAP && {
         label: 'AAP',
         data: series.AAP,
-        borderColor: '#1E40AF',
-        backgroundColor: '#1E40AF33',
+        borderColor: '#0073e6',
+        backgroundColor: '#0073e633',
+        fill: true,
+        tension: 0.3,
+      },
+      series['JD(U)'] && {
+        label: 'JD(U)',
+        data: series['JD(U)'],
+        borderColor: '#006400',
+        backgroundColor: '#00640033',
+        fill: true,
+        tension: 0.3,
+      },
+      series.RJD && {
+        label: 'RJD',
+        data: series.RJD,
+        borderColor: '#008000',
+        backgroundColor: '#00800033',
+        fill: true,
+        tension: 0.3,
+      },
+      series['Jan Suraaj'] && {
+        label: 'Jan Suraaj',
+        data: series['Jan Suraaj'],
+        borderColor: '#FF6347',
+        backgroundColor: '#FF634733',
+        fill: true,
+        tension: 0.3,
+      },
+      series.Others && {
+        label: 'Others',
+        data: series.Others,
+        borderColor: '#64748B',
+        backgroundColor: '#64748B33',
         fill: true,
         tension: 0.3,
       },
@@ -57,7 +89,20 @@ export function SpendLineChart({ labels, series }) {
 export function SpendPieChart({ totals = {} }) {
   const labels = Object.keys(totals)
   const values = Object.values(totals)
-  const colors = ['#F97316', '#0EA5E9', '#1E40AF', '#64748B']
+
+  // Map party names to colors
+  const partyColorMap = {
+    BJP: '#FF9933',
+    INC: '#138808',
+    AAP: '#0073e6',
+    'JD(U)': '#006400',
+    RJD: '#008000',
+    'Jan Suraaj': '#FF6347',
+    Others: '#64748B'
+  }
+
+  const colors = labels.map(label => partyColorMap[label] || '#64748B')
+
   const data = {
     labels,
     datasets: [{
