@@ -25,34 +25,40 @@ export async function GET(request) {
     let paramCount = 1;
 
     if (state && state !== 'All India') {
-      // Join with ad_regions for state filtering
+      // Join with ad_regions for state filtering (only available for Meta ads)
       queryText = `
         SELECT DISTINCT
           a.page_id,
-          a.bylines,
+          COALESCE(m.bylines, p.page_name, '') as bylines,
           a.spend_lower,
           a.spend_upper,
           a.impressions_lower,
           a.impressions_upper,
+          a.platform,
           r.spend_percentage,
           r.impressions_percentage
-        FROM meta_ads.ads a
-        JOIN meta_ads.ad_regions r ON a.id = r.ad_id
-        WHERE r.region = $${paramCount}
+        FROM unified.all_ads a
+        LEFT JOIN unified.all_pages p ON a.page_id = p.page_id AND a.platform = p.platform
+        LEFT JOIN meta_ads.ads m ON a.id = m.id AND a.platform = 'Meta'
+        LEFT JOIN meta_ads.ad_regions r ON a.id = r.ad_id AND a.platform = 'Meta'
+        WHERE (r.region = $${paramCount} OR a.platform != 'Meta')
       `;
       params.push(state);
       paramCount++;
     } else {
-      // No state filter - get all ads
+      // No state filter - get all ads from unified schema (Meta + Google)
       queryText = `
         SELECT
-          page_id,
-          bylines,
-          spend_lower,
-          spend_upper,
-          impressions_lower,
-          impressions_upper
-        FROM meta_ads.ads
+          a.page_id,
+          COALESCE(m.bylines, p.page_name, '') as bylines,
+          a.spend_lower,
+          a.spend_upper,
+          a.impressions_lower,
+          a.impressions_upper,
+          a.platform
+        FROM unified.all_ads a
+        LEFT JOIN unified.all_pages p ON a.page_id = p.page_id AND a.platform = p.platform
+        LEFT JOIN meta_ads.ads m ON a.id = m.id AND a.platform = 'Meta'
         WHERE 1=1
       `;
     }
@@ -80,9 +86,13 @@ export async function GET(request) {
       BJP: { count: 0, spend: 0, impressions: 0 },
       INC: { count: 0, spend: 0, impressions: 0 },
       AAP: { count: 0, spend: 0, impressions: 0 },
-      'JD(U)': { count: 0, spend: 0, impressions: 0 },
+      'Janata Dal (United)': { count: 0, spend: 0, impressions: 0 },
       RJD: { count: 0, spend: 0, impressions: 0 },
       'Jan Suraaj': { count: 0, spend: 0, impressions: 0 },
+      LJP: { count: 0, spend: 0, impressions: 0 },
+      HAM: { count: 0, spend: 0, impressions: 0 },
+      VIP: { count: 0, spend: 0, impressions: 0 },
+      AIMIM: { count: 0, spend: 0, impressions: 0 },
       Others: { count: 0, spend: 0, impressions: 0 }
     };
 
@@ -138,10 +148,10 @@ export async function GET(request) {
           count: partyStats.AAP.count,
           impressions: parseInt(partyStats.AAP.impressions)
         },
-        'JD(U)': {
-          spend: parseFloat((partyStats['JD(U)'].spend / 100000).toFixed(2)),
-          count: partyStats['JD(U)'].count,
-          impressions: parseInt(partyStats['JD(U)'].impressions)
+        'Janata Dal (United)': {
+          spend: parseFloat((partyStats['Janata Dal (United)'].spend / 100000).toFixed(2)),
+          count: partyStats['Janata Dal (United)'].count,
+          impressions: parseInt(partyStats['Janata Dal (United)'].impressions)
         },
         RJD: {
           spend: parseFloat((partyStats.RJD.spend / 100000).toFixed(2)),
@@ -152,6 +162,26 @@ export async function GET(request) {
           spend: parseFloat((partyStats['Jan Suraaj'].spend / 100000).toFixed(2)),
           count: partyStats['Jan Suraaj'].count,
           impressions: parseInt(partyStats['Jan Suraaj'].impressions)
+        },
+        LJP: {
+          spend: parseFloat((partyStats.LJP.spend / 100000).toFixed(2)),
+          count: partyStats.LJP.count,
+          impressions: parseInt(partyStats.LJP.impressions)
+        },
+        HAM: {
+          spend: parseFloat((partyStats.HAM.spend / 100000).toFixed(2)),
+          count: partyStats.HAM.count,
+          impressions: parseInt(partyStats.HAM.impressions)
+        },
+        VIP: {
+          spend: parseFloat((partyStats.VIP.spend / 100000).toFixed(2)),
+          count: partyStats.VIP.count,
+          impressions: parseInt(partyStats.VIP.impressions)
+        },
+        AIMIM: {
+          spend: parseFloat((partyStats.AIMIM.spend / 100000).toFixed(2)),
+          count: partyStats.AIMIM.count,
+          impressions: parseInt(partyStats.AIMIM.impressions)
         },
         Others: {
           spend: parseFloat((partyStats.Others.spend / 100000).toFixed(2)),

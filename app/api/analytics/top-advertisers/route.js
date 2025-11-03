@@ -17,34 +17,38 @@ export async function GET(request) {
     let paramCount = 1;
 
     if (state && state !== 'All India') {
-      // Use ad_regions table for efficient state filtering
+      // Use ad_regions table for efficient state filtering (Meta ads only)
       queryText = `
         SELECT
           a.page_id,
-          a.bylines,
+          COALESCE(m.bylines, p.page_name, '') as bylines,
           p.page_name,
+          a.platform,
           COUNT(DISTINCT a.id) as ad_count,
-          SUM((a.spend_lower + a.spend_upper) / 2 * r.spend_percentage) as total_spend,
-          SUM((a.impressions_lower + a.impressions_upper) / 2 * r.impressions_percentage) as total_impressions
-        FROM meta_ads.ads a
-        LEFT JOIN meta_ads.pages p ON a.page_id = p.page_id
-        JOIN meta_ads.ad_regions r ON a.id = r.ad_id
-        WHERE r.region = $${paramCount}
+          SUM((a.spend_lower + a.spend_upper) / 2 * COALESCE(r.spend_percentage, 1)) as total_spend,
+          SUM((a.impressions_lower + a.impressions_upper) / 2 * COALESCE(r.impressions_percentage, 1)) as total_impressions
+        FROM unified.all_ads a
+        LEFT JOIN unified.all_pages p ON a.page_id = p.page_id AND a.platform = p.platform
+        LEFT JOIN meta_ads.ads m ON a.id = m.id AND a.platform = 'Meta'
+        LEFT JOIN meta_ads.ad_regions r ON a.id = r.ad_id AND a.platform = 'Meta'
+        WHERE (r.region = $${paramCount} OR a.platform != 'Meta')
       `;
       params.push(state);
       paramCount++;
     } else {
-      // No state filter - query ads directly
+      // No state filter - query all ads from unified schema (Meta + Google)
       queryText = `
         SELECT
           a.page_id,
-          a.bylines,
+          COALESCE(m.bylines, p.page_name, '') as bylines,
           p.page_name,
+          a.platform,
           COUNT(*) as ad_count,
           SUM((a.spend_lower + a.spend_upper) / 2) as total_spend,
           SUM((a.impressions_lower + a.impressions_upper) / 2) as total_impressions
-        FROM meta_ads.ads a
-        LEFT JOIN meta_ads.pages p ON a.page_id = p.page_id
+        FROM unified.all_ads a
+        LEFT JOIN unified.all_pages p ON a.page_id = p.page_id AND a.platform = p.platform
+        LEFT JOIN meta_ads.ads m ON a.id = m.id AND a.platform = 'Meta'
         WHERE 1=1
       `;
     }

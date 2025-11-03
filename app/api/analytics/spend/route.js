@@ -16,41 +16,47 @@ export async function GET(request) {
     let paramCount = 1;
 
     if (state && state !== 'All India') {
-      // Use ad_regions table for efficient state filtering
+      // Use ad_regions table for efficient state filtering (Meta ads only)
       queryText = `
         SELECT DISTINCT
           a.page_id,
-          a.bylines,
+          COALESCE(m.bylines, p.page_name, '') as bylines,
           a.spend_lower,
           a.spend_upper,
+          a.platform,
           r.spend_percentage
-        FROM meta_ads.ads a
-        JOIN meta_ads.ad_regions r ON a.id = r.ad_id
-        WHERE r.region = $${paramCount}
+        FROM unified.all_ads a
+        LEFT JOIN unified.all_pages p ON a.page_id = p.page_id AND a.platform = p.platform
+        LEFT JOIN meta_ads.ads m ON a.id = m.id AND a.platform = 'Meta'
+        LEFT JOIN meta_ads.ad_regions r ON a.id = r.ad_id AND a.platform = 'Meta'
+        WHERE (r.region = $${paramCount} OR a.platform != 'Meta')
       `;
       params.push(state);
       paramCount++;
     } else {
-      // No state filter - query ads directly
+      // No state filter - query all ads from unified schema (Meta + Google)
       queryText = `
         SELECT
-          page_id,
-          bylines,
-          spend_lower,
-          spend_upper
-        FROM meta_ads.ads
+          a.page_id,
+          COALESCE(m.bylines, p.page_name, '') as bylines,
+          a.spend_lower,
+          a.spend_upper,
+          a.platform
+        FROM unified.all_ads a
+        LEFT JOIN unified.all_pages p ON a.page_id = p.page_id AND a.platform = p.platform
+        LEFT JOIN meta_ads.ads m ON a.id = m.id AND a.platform = 'Meta'
         WHERE 1=1
       `;
     }
 
     if (startDate) {
-      queryText += ` AND ad_delivery_start_time >= $${paramCount}`;
+      queryText += ` AND a.ad_delivery_start_time >= $${paramCount}`;
       params.push(startDate);
       paramCount++;
     }
 
     if (endDate) {
-      queryText += ` AND ad_delivery_stop_time <= $${paramCount}`;
+      queryText += ` AND a.ad_delivery_stop_time <= $${paramCount}`;
       params.push(endDate);
       paramCount++;
     }
@@ -62,9 +68,13 @@ export async function GET(request) {
       BJP: 0,
       INC: 0,
       AAP: 0,
-      'JD(U)': 0,
+      'Janata Dal (United)': 0,
       RJD: 0,
       'Jan Suraaj': 0,
+      LJP: 0,
+      HAM: 0,
+      VIP: 0,
+      AIMIM: 0,
       Others: 0
     };
 

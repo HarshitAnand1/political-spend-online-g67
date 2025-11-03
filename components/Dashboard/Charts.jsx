@@ -32,9 +32,9 @@ export function SpendLineChart({ labels, series }) {
         fill: true,
         tension: 0.3,
       },
-      series['JD(U)'] && {
-        label: 'JD(U)',
-        data: series['JD(U)'],
+      series['Janata Dal (United)'] && {
+        label: 'Janata Dal (United)',
+        data: series['Janata Dal (United)'],
         borderColor: '#006400',
         backgroundColor: '#00640033',
         fill: true,
@@ -95,7 +95,7 @@ export function SpendPieChart({ totals = {} }) {
     BJP: '#FF9933',
     INC: '#138808',
     AAP: '#0073e6',
-    'JD(U)': '#006400',
+    'Janata Dal (United)': '#006400',
     RJD: '#008000',
     'Jan Suraaj': '#FF6347',
     Others: '#64748B'

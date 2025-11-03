@@ -13,7 +13,7 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true)
   const [stats, setStats] = useState({ totalAds: 0, totalPages: 0, totalSpend: 0, partyBreakdown: {} })
   const [spendData, setSpendData] = useState({})
-  const [lineSeries, setLineSeries] = useState({ labels: [], BJP: [], INC: [], AAP: [], 'JD(U)': [], RJD: [], 'Jan Suraaj': [], Others: [] })
+  const [lineSeries, setLineSeries] = useState({ labels: [], BJP: [], INC: [], AAP: [], 'Janata Dal (United)': [], RJD: [], 'Jan Suraaj': [], Others: [] })
   const [topAdvertisers, setTopAdvertisers] = useState([])
   const [geoData, setGeoData] = useState([])
 
@@ -69,7 +69,7 @@ export default function Dashboard() {
     const bjpValue = typeof breakdown.BJP === 'object' ? breakdown.BJP.spend : breakdown.BJP
     const incValue = typeof breakdown.INC === 'object' ? breakdown.INC.spend : breakdown.INC
     const aapValue = typeof breakdown.AAP === 'object' ? breakdown.AAP.spend : breakdown.AAP
-    const jduValue = typeof breakdown['JD(U)'] === 'object' ? breakdown['JD(U)'].spend : breakdown['JD(U)']
+    const jduValue = typeof breakdown['Janata Dal (United)'] === 'object' ? breakdown['Janata Dal (United)'].spend : breakdown['Janata Dal (United)']
     const rjdValue = typeof breakdown.RJD === 'object' ? breakdown.RJD.spend : breakdown.RJD
     const janSuraajValue = typeof breakdown['Jan Suraaj'] === 'object' ? breakdown['Jan Suraaj'].spend : breakdown['Jan Suraaj']
     const othersValue = typeof breakdown.Others === 'object' ? breakdown.Others.spend : breakdown.Others
@@ -79,7 +79,7 @@ export default function Dashboard() {
       BJP: bjpValue || spendData.BJP || 0,
       INC: incValue || spendData.INC || 0,
       AAP: aapValue || spendData.AAP || 0,
-      'JD(U)': jduValue || spendData['JD(U)'] || 0,
+      'Janata Dal (United)': jduValue || spendData['Janata Dal (United)'] || 0,
       RJD: rjdValue || spendData.RJD || 0,
       'Jan Suraaj': janSuraajValue || spendData['Jan Suraaj'] || 0,
       Others: othersValue || spendData.Others || 0
@@ -89,7 +89,7 @@ export default function Dashboard() {
       BJP: parseFloat(((lakhs.BJP || 0) / 100).toFixed(2)),
       INC: parseFloat(((lakhs.INC || 0) / 100).toFixed(2)),
       AAP: parseFloat(((lakhs.AAP || 0) / 100).toFixed(2)),
-      'JD(U)': parseFloat(((lakhs['JD(U)'] || 0) / 100).toFixed(2)),
+      'Janata Dal (United)': parseFloat(((lakhs['Janata Dal (United)'] || 0) / 100).toFixed(2)),
       RJD: parseFloat(((lakhs.RJD || 0) / 100).toFixed(2)),
       'Jan Suraaj': parseFloat(((lakhs['Jan Suraaj'] || 0) / 100).toFixed(2)),
       Others: parseFloat(((lakhs.Others || 0) / 100).toFixed(2))
@@ -103,7 +103,7 @@ export default function Dashboard() {
       BJP: (lineSeries.BJP || []).map(v => parseFloat((v / 100).toFixed(2))),
       INC: (lineSeries.INC || []).map(v => parseFloat((v / 100).toFixed(2))),
       AAP: (lineSeries.AAP || []).map(v => parseFloat((v / 100).toFixed(2))),
-      'JD(U)': (lineSeries['JD(U)'] || []).map(v => parseFloat((v / 100).toFixed(2))),
+      'Janata Dal (United)': (lineSeries['Janata Dal (United)'] || []).map(v => parseFloat((v / 100).toFixed(2))),
       RJD: (lineSeries.RJD || []).map(v => parseFloat((v / 100).toFixed(2))),
       'Jan Suraaj': (lineSeries['Jan Suraaj'] || []).map(v => parseFloat((v / 100).toFixed(2))),
       Others: (lineSeries.Others || []).map(v => parseFloat((v / 100).toFixed(2)))

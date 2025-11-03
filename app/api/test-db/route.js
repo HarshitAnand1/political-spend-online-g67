@@ -3,8 +3,8 @@ import { query } from '@/lib/db';
 
 export async function GET() {
   try {
-    // Test basic connection
-    const result = await query('SELECT current_user, current_database(), COUNT(*) FROM meta_ads.ads');
+    // Test basic connection - using unified schema with combined Meta + Google ads
+    const result = await query('SELECT current_user, current_database(), COUNT(*) FROM unified.all_ads');
 
     return NextResponse.json({
       success: true,

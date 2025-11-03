@@ -16,7 +16,7 @@ export default function GeographicBreakdown({ data = [] }) {
     BJP: 'bg-orange-500',
     INC: 'bg-green-600',
     AAP: 'bg-blue-600',
-    'JD(U)': 'bg-green-800',
+    'Janata Dal (United)': 'bg-green-800',
     RJD: 'bg-green-500',
     'Jan Suraaj': 'bg-red-500',
     Others: 'bg-slate-500'
