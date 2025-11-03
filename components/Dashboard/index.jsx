@@ -7,13 +7,14 @@ import SpendTable from './SpendTable'
 import TopAdvertisers from './TopAdvertisers'
 import GeographicBreakdown from './GeographicBreakdown'
 import { addDays, format } from './utils/date'
+import { getPartyName, getPartyColor } from '@/lib/partyUtils'
 
 export default function Dashboard() {
   const [filters, setFilters] = useState({ dateRange: [], state: 'All India', party: 'All Parties' })
   const [loading, setLoading] = useState(true)
   const [stats, setStats] = useState({ totalAds: 0, totalPages: 0, totalSpend: 0, partyBreakdown: {} })
   const [spendData, setSpendData] = useState({})
-  const [lineSeries, setLineSeries] = useState({ labels: [], BJP: [], INC: [], AAP: [], 'Janata Dal (United)': [], RJD: [], 'Jan Suraaj': [], Others: [] })
+  const [lineSeries, setLineSeries] = useState({ labels: [], BJP: [], INC: [], AAP: [], 'Janata Dal (United)': [], RJD: [], 'Jan Suraaj': [], LJP: [], HAM: [], VIP: [], AIMIM: [], Others: [] })
   const [topAdvertisers, setTopAdvertisers] = useState([])
   const [geoData, setGeoData] = useState([])
 
@@ -65,26 +66,30 @@ export default function Dashboard() {
   // Compute totals for KPI and pie from party breakdown (convert Lakhs to Crores)
   const totals = useMemo(() => {
     const breakdown = stats.partyBreakdown || {}
-    // Check if breakdown has new format with nested objects or old format with direct values
-    const bjpValue = typeof breakdown.BJP === 'object' ? breakdown.BJP.spend : breakdown.BJP
-    const incValue = typeof breakdown.INC === 'object' ? breakdown.INC.spend : breakdown.INC
-    const aapValue = typeof breakdown.AAP === 'object' ? breakdown.AAP.spend : breakdown.AAP
-    const jduValue = typeof breakdown['Janata Dal (United)'] === 'object' ? breakdown['Janata Dal (United)'].spend : breakdown['Janata Dal (United)']
-    const rjdValue = typeof breakdown.RJD === 'object' ? breakdown.RJD.spend : breakdown.RJD
-    const janSuraajValue = typeof breakdown['Jan Suraaj'] === 'object' ? breakdown['Jan Suraaj'].spend : breakdown['Jan Suraaj']
-    const othersValue = typeof breakdown.Others === 'object' ? breakdown.Others.spend : breakdown.Others
 
-    // Fallback to spendData if breakdown not available
-    const lakhs = {
-      BJP: bjpValue || spendData.BJP || 0,
-      INC: incValue || spendData.INC || 0,
-      AAP: aapValue || spendData.AAP || 0,
-      'Janata Dal (United)': jduValue || spendData['Janata Dal (United)'] || 0,
-      RJD: rjdValue || spendData.RJD || 0,
-      'Jan Suraaj': janSuraajValue || spendData['Jan Suraaj'] || 0,
-      Others: othersValue || spendData.Others || 0
+    // Helper function to get value from breakdown or spendData
+    const getValue = (partyCode) => {
+      const breakdownValue = breakdown[partyCode]
+      const value = typeof breakdownValue === 'object' ? breakdownValue.spend : breakdownValue
+      return value || spendData[partyCode] || 0
     }
 
+    // Get values for all 10 parties + Others
+    const lakhs = {
+      BJP: getValue('BJP'),
+      INC: getValue('INC'),
+      AAP: getValue('AAP'),
+      'Janata Dal (United)': getValue('Janata Dal (United)'),
+      RJD: getValue('RJD'),
+      'Jan Suraaj': getValue('Jan Suraaj'),
+      LJP: getValue('LJP'),
+      HAM: getValue('HAM'),
+      VIP: getValue('VIP'),
+      AIMIM: getValue('AIMIM'),
+      Others: getValue('Others')
+    }
+
+    // Convert all from Lakhs to Crores
     return {
       BJP: parseFloat(((lakhs.BJP || 0) / 100).toFixed(2)),
       INC: parseFloat(((lakhs.INC || 0) / 100).toFixed(2)),
@@ -92,6 +97,10 @@ export default function Dashboard() {
       'Janata Dal (United)': parseFloat(((lakhs['Janata Dal (United)'] || 0) / 100).toFixed(2)),
       RJD: parseFloat(((lakhs.RJD || 0) / 100).toFixed(2)),
       'Jan Suraaj': parseFloat(((lakhs['Jan Suraaj'] || 0) / 100).toFixed(2)),
+      LJP: parseFloat(((lakhs.LJP || 0) / 100).toFixed(2)),
+      HAM: parseFloat(((lakhs.HAM || 0) / 100).toFixed(2)),
+      VIP: parseFloat(((lakhs.VIP || 0) / 100).toFixed(2)),
+      AIMIM: parseFloat(((lakhs.AIMIM || 0) / 100).toFixed(2)),
       Others: parseFloat(((lakhs.Others || 0) / 100).toFixed(2))
     }
   }, [stats, spendData])
@@ -106,26 +115,31 @@ export default function Dashboard() {
       'Janata Dal (United)': (lineSeries['Janata Dal (United)'] || []).map(v => parseFloat((v / 100).toFixed(2))),
       RJD: (lineSeries.RJD || []).map(v => parseFloat((v / 100).toFixed(2))),
       'Jan Suraaj': (lineSeries['Jan Suraaj'] || []).map(v => parseFloat((v / 100).toFixed(2))),
+      LJP: (lineSeries.LJP || []).map(v => parseFloat((v / 100).toFixed(2))),
+      HAM: (lineSeries.HAM || []).map(v => parseFloat((v / 100).toFixed(2))),
+      VIP: (lineSeries.VIP || []).map(v => parseFloat((v / 100).toFixed(2))),
+      AIMIM: (lineSeries.AIMIM || []).map(v => parseFloat((v / 100).toFixed(2))),
       Others: (lineSeries.Others || []).map(v => parseFloat((v / 100).toFixed(2)))
     }
   }, [lineSeries])
 
   const tableRows = useMemo(() => {
     const totalSum = Object.values(totals).reduce((a, b) => a + b, 0) || 1
-    const logos = {
-      BJP: 'https://placehold.co/24x24/FF9933/FFFFFF?text=B',
-      INC: 'https://placehold.co/24x24/138808/FFFFFF?text=I',
-      AAP: 'https://placehold.co/24x24/0073e6/FFFFFF?text=A',
-      Others: 'https://placehold.co/24x24/64748B/FFFFFF?text=O',
-    }
+
     return Object.entries(totals)
+      .filter(([, value]) => value > 0) // Only show parties with spending
       .sort((a, b) => b[1] - a[1])
-      .map(([name, value]) => ({
-        name: name === 'INC' ? 'Indian National Congress' : name === 'BJP' ? 'Bharatiya Janata Party' : name === 'AAP' ? 'Aam Aadmi Party' : 'Others',
-        logo: logos[name],
-        value: value.toFixed(2),
-        percent: ((value / totalSum) * 100).toFixed(1),
-      }))
+      .map(([partyCode, value]) => {
+        const color = getPartyColor(partyCode)
+        const initial = partyCode.charAt(0).toUpperCase()
+
+        return {
+          name: getPartyName(partyCode),
+          logo: `https://placehold.co/24x24/${color.substring(1)}/FFFFFF?text=${initial}`,
+          value: value.toFixed(2),
+          percent: ((value / totalSum) * 100).toFixed(1),
+        }
+      })
   }, [totals])
 
   return (
