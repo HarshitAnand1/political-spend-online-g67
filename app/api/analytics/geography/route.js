@@ -23,8 +23,8 @@ export async function GET(request) {
         a.impressions_upper,
         r.spend_percentage,
         r.impressions_percentage
-      FROM ad_regions r
-      JOIN ads a ON r.ad_id = a.id
+      FROM meta_ads.ad_regions r
+      JOIN meta_ads.ads a ON r.ad_id = a.id
       WHERE 1=1
     `;
 

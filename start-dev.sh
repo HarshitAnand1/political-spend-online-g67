@@ -23,15 +23,7 @@ if grep -q "YOUR_PASSWORD" .env.local; then
 fi
 
 echo -e "${GREEN}✓ Environment file configured${NC}"
-
-# Check if SSH tunnel might be running
-if lsof -Pi :15432 -sTCP:LISTEN -t >/dev/null 2>&1; then
-    echo -e "${GREEN}✓ Port 15432 is active (SSH tunnel likely running)${NC}"
-else
-    echo -e "${YELLOW}⚠ Warning: Port 15432 is not active${NC}"
-    echo -e "Make sure your SSH tunnel is running:"
-    echo -e "ssh -i ~/.ssh/id_ed25519 -L 15432:localhost:5432 sumitsihag@172.16.10.127 -N\n"
-fi
+echo -e "${GREEN}✓ Using AWS RDS direct connection${NC}"
 
 # Check if node_modules exists
 if [ ! -d "node_modules" ]; then

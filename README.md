@@ -31,7 +31,7 @@ A comprehensive dashboard for tracking and analyzing political advertising spend
 
 - **Frontend**: Next.js 14 (App Router), React, TailwindCSS
 - **Backend**: Next.js API Routes, Node.js
-- **Database**: PostgreSQL (92,100+ ad records)
+- **Database**: PostgreSQL on AWS RDS (106,000+ ad records)
 - **Charts**: Chart.js, React-Chartjs-2
 - **UI Components**: Framer Motion, Flatpickr
 
@@ -40,7 +40,7 @@ A comprehensive dashboard for tracking and analyzing political advertising spend
 ### Prerequisites
 
 - Node.js 18+ and npm
-- PostgreSQL database (local or remote)
+- Access to AWS RDS PostgreSQL database
 
 ### Installation
 
@@ -56,15 +56,19 @@ A comprehensive dashboard for tracking and analyzing political advertising spend
    ```
 
 3. **Set up environment variables**
-   
-   Create a `.env.local` file:
+
+   Create a `.env.local` file with AWS RDS credentials:
    ```env
-   DATABASE_URL="postgresql://username:password@localhost:5432/political_ads_db"
+   DATABASE_URL="postgresql://g67:your_password@political-ads.cb62o0qg8ddd.ap-south-1.rds.amazonaws.com:5432/mydb"
    ```
+
+   Replace `your_password` with the actual database password.
 
 4. **Run the development server**
    ```bash
    npm run dev
+   # or use the automated script:
+   ./start-dev.sh
    ```
 
 5. **Open your browser**

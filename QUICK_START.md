@@ -1,8 +1,8 @@
-# Quick Start Guide
+# Quick Start Guide - AWS RDS Version
 
 ## One-Command Startup 🚀
 
-You now have **two options** to start everything at once:
+You now have **two options** to start the dashboard:
 
 ### Option 1: tmux (Recommended - Multiple Panes)
 ```bash
@@ -10,12 +10,10 @@ You now have **two options** to start everything at once:
 ```
 
 **What it does:**
-- Opens a tmux session with 3 panes:
-  - **Top pane**: SSH tunnel (stays connected)
-  - **Bottom-left pane**: Next.js dev server
-  - **Bottom-right pane**: Tests and status
-- Auto-detects reachable host from your list
-- Runs initial database test
+- Opens a tmux session with 2 panes:
+  - **Top pane**: Next.js dev server (connects to AWS RDS)
+  - **Bottom pane**: Tests and status
+- Runs initial database connection test
 - Shows all URLs and commands
 
 **tmux Controls:**
@@ -29,20 +27,20 @@ You now have **two options** to start everything at once:
 sudo apt-get install tmux
 ```
 
-### Option 2: Simple (Sequential, No tmux)
+### Option 2: Simple (Just Dev Server)
 ```bash
-./start-simple.sh
+./start-dev.sh
 ```
 
 **What it does:**
-- Starts SSH tunnel in background
-- Tests database connection
-- Starts Next.js dev server in foreground
-- When you press Ctrl+C, only dev server stops (tunnel keeps running)
+- Checks environment configuration
+- Verifies AWS RDS connection details
+- Starts Next.js dev server
+- Opens on http://localhost:3000
 
-**To stop the tunnel later:**
+**Or use npm directly:**
 ```bash
-pkill -f "ssh.*15432:localhost:5432"
+npm run dev
 ```
 
 ---

@@ -4,8 +4,8 @@ import { query } from '@/lib/db';
 export async function GET() {
   try {
     // Test basic connection
-    const result = await query('SELECT current_user, current_database(), COUNT(*) FROM ads');
-    
+    const result = await query('SELECT current_user, current_database(), COUNT(*) FROM meta_ads.ads');
+
     return NextResponse.json({
       success: true,
       message: 'Database connection successful!',

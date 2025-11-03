@@ -1,46 +1,53 @@
-# Database Setup Guide
+# Database Setup Guide - AWS RDS
 
 ## Overview
-This guide explains how to connect your Next.js application to the PostgreSQL database.
+This guide explains how to connect your Next.js application to the PostgreSQL database hosted on AWS RDS.
 
 ## Prerequisites
-- SSH access to the database server
-- PostgreSQL database credentials
+- AWS RDS database credentials
 - Node.js and npm installed
+- Network access to AWS RDS (security group configured)
 
 ## Step-by-Step Setup
 
-### 1. SSH Tunnel Setup
-You need to keep TWO terminal windows open:
+### 1. AWS RDS Connection
+The application connects directly to AWS RDS PostgreSQL without needing SSH tunnels.
 
-#### Terminal 1: SSH Tunnel
-```bash
-ssh -i ~/.ssh/id_ed25519 -L 15432:localhost:5432 sumitsihag@172.16.10.127 -N
-```
-This creates a tunnel forwarding local port 15432 to the remote PostgreSQL server on port 5432.
-
-#### Terminal 2: Test Connection (Optional)
-```bash
-psql -h localhost -p 15432 -U harshit -d political_ads_db -W -c 'SELECT current_user, COUNT(*) FROM ads;'
-```
+**Database Details:**
+- **Host**: `political-ads.cb62o0qg8ddd.ap-south-1.rds.amazonaws.com`
+- **Port**: `5432`
+- **Database**: `mydb`
+- **User**: `g67`
+- **Region**: ap-south-1 (Mumbai, India)
 
 ### 2. Environment Variables
 Create a `.env.local` file in the project root:
 
 ```env
-DATABASE_URL="postgresql://harshit:YOUR_PASSWORD@localhost:15432/political_ads_db"
+DATABASE_URL="postgresql://g67:YOUR_PASSWORD@political-ads.cb62o0qg8ddd.ap-south-1.rds.amazonaws.com:5432/mydb"
 ```
 
 **Replace `YOUR_PASSWORD` with your actual database password.**
 
-### 3. Install Dependencies
+### 3. Test Connection (Optional)
+```bash
+./test-direct-connection.sh
+```
+
+Or manually with psql:
+```bash
+psql -h political-ads.cb62o0qg8ddd.ap-south-1.rds.amazonaws.com -p 5432 -U g67 -d mydb
+```
+
+### 4. Install Dependencies
 Dependencies are already installed in package.json:
 - `pg` - PostgreSQL client for Node.js
-- `@prisma/client` and `prisma` - ORM (optional, for future use)
 
-### 4. Start the Development Server
+### 5. Start the Development Server
 ```bash
 npm run dev
+# or use the automated script:
+./start-dev.sh
 ```
 
 The server will start on http://localhost:3000
