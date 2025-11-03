@@ -48,9 +48,13 @@ export default function FiltersPanel({ filters, setFilters, onApply }) {
             <option>BJP</option>
             <option>INC</option>
             <option>AAP</option>
-            <option>JD(U)</option>
+            <option>Janata Dal (United)</option>
             <option>RJD</option>
             <option>Jan Suraaj</option>
+            <option>LJP</option>
+            <option>HAM</option>
+            <option>VIP</option>
+            <option>AIMIM</option>
           </select>
         </div>
         <button

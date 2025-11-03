@@ -56,6 +56,38 @@ export function SpendLineChart({ labels, series }) {
         fill: true,
         tension: 0.3,
       },
+      series.LJP && {
+        label: 'LJP',
+        data: series.LJP,
+        borderColor: '#9333EA',
+        backgroundColor: '#9333EA33',
+        fill: true,
+        tension: 0.3,
+      },
+      series.HAM && {
+        label: 'HAM',
+        data: series.HAM,
+        borderColor: '#92400E',
+        backgroundColor: '#92400E33',
+        fill: true,
+        tension: 0.3,
+      },
+      series.VIP && {
+        label: 'VIP',
+        data: series.VIP,
+        borderColor: '#0891B2',
+        backgroundColor: '#0891B233',
+        fill: true,
+        tension: 0.3,
+      },
+      series.AIMIM && {
+        label: 'AIMIM',
+        data: series.AIMIM,
+        borderColor: '#14532D',
+        backgroundColor: '#14532D33',
+        fill: true,
+        tension: 0.3,
+      },
       series.Others && {
         label: 'Others',
         data: series.Others,
@@ -98,6 +130,10 @@ export function SpendPieChart({ totals = {} }) {
     'Janata Dal (United)': '#006400',
     RJD: '#008000',
     'Jan Suraaj': '#FF6347',
+    LJP: '#9333EA',
+    HAM: '#92400E',
+    VIP: '#0891B2',
+    AIMIM: '#14532D',
     Others: '#64748B'
   }
 
