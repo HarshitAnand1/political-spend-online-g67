@@ -66,7 +66,7 @@ export async function GET(request) {
     }
 
     queryText += `
-      GROUP BY a.page_id, a.bylines, p.page_name
+      GROUP BY a.page_id, m.bylines, p.page_name, a.platform
       HAVING SUM((a.spend_lower + a.spend_upper) / 2) > 0
       ORDER BY total_spend DESC
       LIMIT $${paramCount}
