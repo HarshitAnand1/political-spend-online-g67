@@ -30,9 +30,9 @@ else
     echo "$response" | jq . 2>/dev/null || echo "$response"
     echo ""
     echo "Troubleshooting steps:"
-    echo "1. Check if SSH tunnel is running"
-    echo "2. Verify .env.local has correct password"
-    echo "3. Test manual connection: psql -h localhost -p 15432 -U harshit -d political_ads_db"
+    echo "1. Verify .env.local has correct AWS RDS credentials"
+    echo "2. Check network connectivity to AWS RDS"
+    echo "3. Verify security group allows your IP address"
 fi
 
 echo ""

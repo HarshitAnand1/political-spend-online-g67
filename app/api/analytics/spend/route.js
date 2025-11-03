@@ -24,8 +24,8 @@ export async function GET(request) {
           a.spend_lower,
           a.spend_upper,
           r.spend_percentage
-        FROM ads a
-        JOIN ad_regions r ON a.id = r.ad_id
+        FROM meta_ads.ads a
+        JOIN meta_ads.ad_regions r ON a.id = r.ad_id
         WHERE r.region = $${paramCount}
       `;
       params.push(state);
@@ -38,7 +38,7 @@ export async function GET(request) {
           bylines,
           spend_lower,
           spend_upper
-        FROM ads
+        FROM meta_ads.ads
         WHERE 1=1
       `;
     }

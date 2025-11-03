@@ -26,9 +26,9 @@ export async function GET(request) {
           COUNT(DISTINCT a.id) as ad_count,
           SUM((a.spend_lower + a.spend_upper) / 2 * r.spend_percentage) as total_spend,
           SUM((a.impressions_lower + a.impressions_upper) / 2 * r.impressions_percentage) as total_impressions
-        FROM ads a
-        LEFT JOIN pages p ON a.page_id = p.page_id
-        JOIN ad_regions r ON a.id = r.ad_id
+        FROM meta_ads.ads a
+        LEFT JOIN meta_ads.pages p ON a.page_id = p.page_id
+        JOIN meta_ads.ad_regions r ON a.id = r.ad_id
         WHERE r.region = $${paramCount}
       `;
       params.push(state);
@@ -43,8 +43,8 @@ export async function GET(request) {
           COUNT(*) as ad_count,
           SUM((a.spend_lower + a.spend_upper) / 2) as total_spend,
           SUM((a.impressions_lower + a.impressions_upper) / 2) as total_impressions
-        FROM ads a
-        LEFT JOIN pages p ON a.page_id = p.page_id
+        FROM meta_ads.ads a
+        LEFT JOIN meta_ads.pages p ON a.page_id = p.page_id
         WHERE 1=1
       `;
     }
