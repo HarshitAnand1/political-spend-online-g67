@@ -157,10 +157,10 @@ export async function GET(request) {
         }
       }
       
-      const firstLocation = Array.isArray(locations) && locations.length > 0 
-        ? locations[0]?.name || 'Unknown' 
+      const firstLocation = Array.isArray(locations) && locations.length > 0
+        ? locations[0]?.name || 'Unknown'
         : 'Unknown';
-      
+
       return {
         id: row.id,
         title: row.page_id || 'Unknown Ad',
@@ -182,7 +182,7 @@ export async function GET(request) {
         startDate: row.ad_delivery_start_time,
         endDate: row.ad_delivery_stop_time,
         snapshotUrl: row.ad_snapshot_url,
-        img: row.ad_snapshot_url, // Add for AdCard
+        img: row.ad_snapshot_url, // Use snapshot URL (will show placeholder with "View Ad" link)
         currency: row.currency,
         estimatedAudience: `${(row.estimated_audience_size_lower || 0).toLocaleString()} - ${(row.estimated_audience_size_upper || 0).toLocaleString()}`
       };
