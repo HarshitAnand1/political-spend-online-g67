@@ -25,40 +25,34 @@ export async function GET(request) {
     let paramCount = 1;
 
     if (state && state !== 'All India') {
-      // Join with ad_regions for state filtering (only available for Meta ads)
+      // Join with ad_regions for state filtering
       queryText = `
         SELECT DISTINCT
           a.page_id,
-          COALESCE(m.bylines, p.page_name, '') as bylines,
+          a.bylines,
           a.spend_lower,
           a.spend_upper,
           a.impressions_lower,
           a.impressions_upper,
-          a.platform,
           r.spend_percentage,
           r.impressions_percentage
-        FROM unified.all_ads a
-        LEFT JOIN unified.all_pages p ON a.page_id = p.page_id AND a.platform = p.platform
-        LEFT JOIN meta_ads.ads m ON a.id = m.id AND a.platform = 'Meta'
-        LEFT JOIN meta_ads.ad_regions r ON a.id = r.ad_id AND a.platform = 'Meta'
-        WHERE (r.region = $${paramCount} OR a.platform != 'Meta')
+        FROM meta_ads.ads a
+        LEFT JOIN meta_ads.ad_regions r ON a.id = r.ad_id
+        WHERE r.region = $${paramCount}
       `;
       params.push(state);
       paramCount++;
     } else {
-      // No state filter - get all ads from unified schema (Meta + Google)
+      // No state filter - get all ads from meta_ads
       queryText = `
         SELECT
           a.page_id,
-          COALESCE(m.bylines, p.page_name, '') as bylines,
+          a.bylines,
           a.spend_lower,
           a.spend_upper,
           a.impressions_lower,
-          a.impressions_upper,
-          a.platform
-        FROM unified.all_ads a
-        LEFT JOIN unified.all_pages p ON a.page_id = p.page_id AND a.platform = p.platform
-        LEFT JOIN meta_ads.ads m ON a.id = m.id AND a.platform = 'Meta'
+          a.impressions_upper
+        FROM meta_ads.ads a
         WHERE 1=1
       `;
     }

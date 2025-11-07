@@ -15,39 +15,33 @@ export async function GET(request) {
     let paramCount = 1;
 
     if (state && state !== 'All India') {
-      // Use ad_regions table for efficient state filtering (Meta ads only)
+      // Use ad_regions table for efficient state filtering
       queryText = `
         SELECT DISTINCT
           DATE(a.ad_delivery_start_time) as date,
           a.page_id,
-          COALESCE(m.bylines, p.page_name, '') as bylines,
+          a.bylines,
           a.spend_lower,
           a.spend_upper,
-          a.platform,
           r.spend_percentage
-        FROM unified.all_ads a
-        LEFT JOIN unified.all_pages p ON a.page_id = p.page_id AND a.platform = p.platform
-        LEFT JOIN meta_ads.ads m ON a.id = m.id AND a.platform = 'Meta'
-        LEFT JOIN meta_ads.ad_regions r ON a.id = r.ad_id AND a.platform = 'Meta'
+        FROM meta_ads.ads a
+        LEFT JOIN meta_ads.ad_regions r ON a.id = r.ad_id
         WHERE a.ad_delivery_start_time >= NOW() - INTERVAL '${parseInt(days)} days'
           AND a.ad_delivery_start_time IS NOT NULL
-          AND (r.region = $${paramCount} OR a.platform != 'Meta')
+          AND r.region = $${paramCount}
         ORDER BY date ASC
       `;
       params.push(state);
     } else {
-      // No state filter - query all ads from unified schema (Meta + Google)
+      // No state filter - query all ads from meta_ads
       queryText = `
         SELECT
           DATE(a.ad_delivery_start_time) as date,
           a.page_id,
-          COALESCE(m.bylines, p.page_name, '') as bylines,
+          a.bylines,
           a.spend_lower,
-          a.spend_upper,
-          a.platform
-        FROM unified.all_ads a
-        LEFT JOIN unified.all_pages p ON a.page_id = p.page_id AND a.platform = p.platform
-        LEFT JOIN meta_ads.ads m ON a.id = m.id AND a.platform = 'Meta'
+          a.spend_upper
+        FROM meta_ads.ads a
         WHERE a.ad_delivery_start_time >= NOW() - INTERVAL '${parseInt(days)} days'
           AND a.ad_delivery_start_time IS NOT NULL
         ORDER BY date ASC
