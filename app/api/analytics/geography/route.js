@@ -11,34 +11,37 @@ export async function GET(request) {
     const party = searchParams.get('party');
     const limit = parseInt(searchParams.get('limit') || '10');
 
-    // Use ad_regions table instead of target_locations for accurate state data
+    // Use ad_regions table for accurate state data (Meta ads only for now)
     let queryText = `
       SELECT
         r.region as state_name,
         a.page_id,
-        a.bylines,
+        COALESCE(m.bylines, p.page_name, '') as bylines,
         a.spend_lower,
         a.spend_upper,
         a.impressions_lower,
         a.impressions_upper,
+        a.platform,
         r.spend_percentage,
         r.impressions_percentage
-      FROM meta_ads.ad_regions r
-      JOIN meta_ads.ads a ON r.ad_id = a.id
-      WHERE 1=1
+      FROM unified.all_ads a
+      LEFT JOIN unified.all_pages p ON a.page_id = p.page_id AND a.platform = p.platform
+      LEFT JOIN meta_ads.ads m ON a.id = m.id AND a.platform = 'Meta'
+      LEFT JOIN meta_ads.ad_regions r ON a.id = r.ad_id
+      WHERE r.region IS NOT NULL
     `;
 
     const params = [];
     let paramCount = 1;
 
     if (startDate) {
-      queryText += ` AND ad_delivery_start_time >= $${paramCount}`;
+      queryText += ` AND a.ad_delivery_start_time >= $${paramCount}`;
       params.push(startDate);
       paramCount++;
     }
 
     if (endDate) {
-      queryText += ` AND ad_delivery_stop_time <= $${paramCount}`;
+      queryText += ` AND a.ad_delivery_stop_time <= $${paramCount}`;
       params.push(endDate);
       paramCount++;
     }
@@ -78,7 +81,7 @@ export async function GET(request) {
           totalSpend: 0,
           totalImpressions: 0,
           adCount: 0,
-          parties: { BJP: 0, INC: 0, AAP: 0, 'JD(U)': 0, RJD: 0, 'Jan Suraaj': 0, Others: 0 }
+          parties: { BJP: 0, INC: 0, AAP: 0, 'Janata Dal (United)': 0, RJD: 0, 'Jan Suraaj': 0, LJP: 0, HAM: 0, VIP: 0, AIMIM: 0, Others: 0 }
         };
       }
 

@@ -86,7 +86,7 @@ export async function GET(request) {
           totalSpend: 0,
           totalImpressions: 0,
           adCount: 0,
-          parties: { BJP: 0, INC: 0, AAP: 0, 'JD(U)': 0, RJD: 0, 'Jan Suraaj': 0, Others: 0 }
+          parties: { BJP: 0, INC: 0, AAP: 0, 'Janata Dal (United)': 0, RJD: 0, 'Jan Suraaj': 0, Others: 0 }
         };
       }
 
@@ -124,7 +124,7 @@ export async function GET(request) {
           BJP: formatCurrency(data.parties.BJP),
           INC: formatCurrency(data.parties.INC),
           AAP: formatCurrency(data.parties.AAP),
-          'JD(U)': formatCurrency(data.parties['JD(U)']),
+          'Janata Dal (United)': formatCurrency(data.parties['Janata Dal (United)']),
           RJD: formatCurrency(data.parties.RJD),
           'Jan Suraaj': formatCurrency(data.parties['Jan Suraaj']),
           Others: formatCurrency(data.parties.Others)

@@ -15,35 +15,41 @@ export async function GET(request) {
     let paramCount = 1;
 
     if (state && state !== 'All India') {
-      // Use ad_regions table for efficient state filtering
+      // Use ad_regions table for efficient state filtering (Meta ads only)
       queryText = `
         SELECT DISTINCT
           DATE(a.ad_delivery_start_time) as date,
           a.page_id,
-          a.bylines,
+          COALESCE(m.bylines, p.page_name, '') as bylines,
           a.spend_lower,
           a.spend_upper,
+          a.platform,
           r.spend_percentage
-        FROM meta_ads.ads a
-        JOIN meta_ads.ad_regions r ON a.id = r.ad_id
+        FROM unified.all_ads a
+        LEFT JOIN unified.all_pages p ON a.page_id = p.page_id AND a.platform = p.platform
+        LEFT JOIN meta_ads.ads m ON a.id = m.id AND a.platform = 'Meta'
+        LEFT JOIN meta_ads.ad_regions r ON a.id = r.ad_id AND a.platform = 'Meta'
         WHERE a.ad_delivery_start_time >= NOW() - INTERVAL '${parseInt(days)} days'
           AND a.ad_delivery_start_time IS NOT NULL
-          AND r.region = $${paramCount}
+          AND (r.region = $${paramCount} OR a.platform != 'Meta')
         ORDER BY date ASC
       `;
       params.push(state);
     } else {
-      // No state filter - query ads directly
+      // No state filter - query all ads from unified schema (Meta + Google)
       queryText = `
         SELECT
-          DATE(ad_delivery_start_time) as date,
-          page_id,
-          bylines,
-          spend_lower,
-          spend_upper
-        FROM meta_ads.ads
-        WHERE ad_delivery_start_time >= NOW() - INTERVAL '${parseInt(days)} days'
-          AND ad_delivery_start_time IS NOT NULL
+          DATE(a.ad_delivery_start_time) as date,
+          a.page_id,
+          COALESCE(m.bylines, p.page_name, '') as bylines,
+          a.spend_lower,
+          a.spend_upper,
+          a.platform
+        FROM unified.all_ads a
+        LEFT JOIN unified.all_pages p ON a.page_id = p.page_id AND a.platform = p.platform
+        LEFT JOIN meta_ads.ads m ON a.id = m.id AND a.platform = 'Meta'
+        WHERE a.ad_delivery_start_time >= NOW() - INTERVAL '${parseInt(days)} days'
+          AND a.ad_delivery_start_time IS NOT NULL
         ORDER BY date ASC
       `;
     }
@@ -66,7 +72,7 @@ export async function GET(request) {
       allDates.add(dateStr);
 
       if (!datePartyMap[dateStr]) {
-        datePartyMap[dateStr] = { BJP: 0, INC: 0, AAP: 0, 'JD(U)': 0, RJD: 0, 'Jan Suraaj': 0, Others: 0 };
+        datePartyMap[dateStr] = { BJP: 0, INC: 0, AAP: 0, 'Janata Dal (United)': 0, RJD: 0, 'Jan Suraaj': 0, LJP: 0, HAM: 0, VIP: 0, AIMIM: 0, Others: 0 };
       }
 
       let avgSpend = ((row.spend_lower || 0) + (row.spend_upper || 0)) / 2;
@@ -89,9 +95,13 @@ export async function GET(request) {
       BJP: labels.map(d => parseFloat(((datePartyMap[d]?.BJP || 0) / 100000).toFixed(2))),
       INC: labels.map(d => parseFloat(((datePartyMap[d]?.INC || 0) / 100000).toFixed(2))),
       AAP: labels.map(d => parseFloat(((datePartyMap[d]?.AAP || 0) / 100000).toFixed(2))),
-      'JD(U)': labels.map(d => parseFloat(((datePartyMap[d]?.['JD(U)'] || 0) / 100000).toFixed(2))),
+      'Janata Dal (United)': labels.map(d => parseFloat(((datePartyMap[d]?.['Janata Dal (United)'] || 0) / 100000).toFixed(2))),
       RJD: labels.map(d => parseFloat(((datePartyMap[d]?.RJD || 0) / 100000).toFixed(2))),
       'Jan Suraaj': labels.map(d => parseFloat(((datePartyMap[d]?.['Jan Suraaj'] || 0) / 100000).toFixed(2))),
+      LJP: labels.map(d => parseFloat(((datePartyMap[d]?.LJP || 0) / 100000).toFixed(2))),
+      HAM: labels.map(d => parseFloat(((datePartyMap[d]?.HAM || 0) / 100000).toFixed(2))),
+      VIP: labels.map(d => parseFloat(((datePartyMap[d]?.VIP || 0) / 100000).toFixed(2))),
+      AIMIM: labels.map(d => parseFloat(((datePartyMap[d]?.AIMIM || 0) / 100000).toFixed(2))),
       Others: labels.map(d => parseFloat(((datePartyMap[d]?.Others || 0) / 100000).toFixed(2)))
     };
 
