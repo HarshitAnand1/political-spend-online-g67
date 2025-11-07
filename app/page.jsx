@@ -7,6 +7,7 @@ import Tabs from '@/components/Tabs'
 import Dashboard from '@/components/Dashboard'
 import Explorer from '@/components/Explorer'
 import Analytics from '@/components/Analytics'
+import PersonAnalytics from '@/components/PersonAnalytics'
 
 export default function Home() {
   const search = useSearchParams()
@@ -15,11 +16,12 @@ export default function Home() {
   const active = useMemo(() => {
     if (tabParam === 'explorer') return 1
     if (tabParam === 'analytics') return 2
+    if (tabParam === 'person-analytics') return 3
     return 0
   }, [tabParam])
 
   const setActive = (i) => {
-    const t = i === 1 ? 'explorer' : i === 2 ? 'analytics' : 'dashboard'
+    const t = i === 1 ? 'explorer' : i === 2 ? 'analytics' : i === 3 ? 'person-analytics' : 'dashboard'
     const url = new URL(window.location.href)
     url.searchParams.set('tab', t)
     router.replace(url.pathname + url.search)
@@ -27,7 +29,7 @@ export default function Home() {
   return (
     <div className="min-h-screen">
       <Header />
-      <Tabs tabs={["Dashboard View", "Explorer View", "Regional Analytics"]} initial={0} onChange={setActive} activeIndex={active} />
+      <Tabs tabs={["Dashboard View", "Explorer View", "Regional Analytics", "Person Analytics"]} initial={0} onChange={setActive} activeIndex={active} />
       <main className="container mx-auto p-4 sm:p-6 lg:p-8">
         <AnimatePresence mode="wait">
           {active === 0 ? (
@@ -38,9 +40,13 @@ export default function Home() {
             <motion.div key="explorer" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.2 }}>
               <Explorer />
             </motion.div>
-          ) : (
+          ) : active === 2 ? (
             <motion.div key="analytics" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.2 }}>
               <Analytics />
+            </motion.div>
+          ) : (
+            <motion.div key="person-analytics" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.2 }}>
+              <PersonAnalytics />
             </motion.div>
           )}
         </AnimatePresence>
