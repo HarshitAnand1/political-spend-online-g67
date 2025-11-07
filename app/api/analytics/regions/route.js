@@ -24,7 +24,7 @@ export async function GET(request) {
     const endDate = searchParams.get('endDate');
     const party = searchParams.get('party');
 
-    // Query to get regional data from ad_regions table
+    // Query to get regional data from meta_ads ad_regions table
     let queryText = `
       SELECT
         r.region,
@@ -36,8 +36,8 @@ export async function GET(request) {
         a.impressions_upper,
         r.spend_percentage,
         r.impressions_percentage
-      FROM ad_regions r
-      JOIN ads a ON r.ad_id = a.id
+      FROM meta_ads.ad_regions r
+      JOIN meta_ads.ads a ON r.ad_id = a.id
       WHERE 1=1
     `;
 
@@ -86,7 +86,7 @@ export async function GET(request) {
           totalSpend: 0,
           totalImpressions: 0,
           adCount: 0,
-          parties: { BJP: 0, INC: 0, AAP: 0, 'Janata Dal (United)': 0, RJD: 0, 'Jan Suraaj': 0, Others: 0 }
+          parties: { BJP: 0, INC: 0, AAP: 0, 'Janata Dal (United)': 0, RJD: 0, 'Jan Suraaj': 0, LJP: 0, HAM: 0, VIP: 0, AIMIM: 0, Others: 0 }
         };
       }
 
@@ -127,6 +127,10 @@ export async function GET(request) {
           'Janata Dal (United)': formatCurrency(data.parties['Janata Dal (United)']),
           RJD: formatCurrency(data.parties.RJD),
           'Jan Suraaj': formatCurrency(data.parties['Jan Suraaj']),
+          LJP: formatCurrency(data.parties.LJP),
+          HAM: formatCurrency(data.parties.HAM),
+          VIP: formatCurrency(data.parties.VIP),
+          AIMIM: formatCurrency(data.parties.AIMIM),
           Others: formatCurrency(data.parties.Others)
         },
         color: REGION_COLORS[name] || '#64748B'

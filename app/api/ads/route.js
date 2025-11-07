@@ -24,20 +24,18 @@ export async function GET(request) {
     let paramCount = 1;
     let useStateJoin = false;
 
-    // Optimized state filtering using ad_regions JOIN (Meta ads only for now)
+    // Query from meta_ads schema for state filtering
     if (state && state !== 'All India') {
       queryText = `
         SELECT DISTINCT
-          a.id, a.page_id, COALESCE(m.bylines, p.page_name, '') as bylines, a.ad_snapshot_url, a.ad_delivery_start_time,
-          a.ad_delivery_stop_time, a.currency, m.target_locations, m.publisher_platforms,
+          a.id, a.page_id, a.bylines, a.ad_snapshot_url, a.ad_delivery_start_time,
+          a.ad_delivery_stop_time, a.currency, a.target_locations, a.publisher_platforms,
           a.spend_lower, a.spend_upper, a.impressions_lower, a.impressions_upper,
-          m.estimated_audience_size_lower, m.estimated_audience_size_upper, a.platform,
+          a.estimated_audience_size_lower, a.estimated_audience_size_upper,
           r.spend_percentage, r.impressions_percentage
-        FROM unified.all_ads a
-        LEFT JOIN unified.all_pages p ON a.page_id = p.page_id AND a.platform = p.platform
-        LEFT JOIN meta_ads.ads m ON a.id = m.id AND a.platform = 'Meta'
-        LEFT JOIN meta_ads.ad_regions r ON a.id = r.ad_id AND a.platform = 'Meta'
-        WHERE (r.region = $${paramCount} OR a.platform != 'Meta')
+        FROM meta_ads.ads a
+        LEFT JOIN meta_ads.ad_regions r ON a.id = r.ad_id
+        WHERE r.region = $${paramCount}
       `;
       params.push(state);
       paramCount++;
@@ -47,16 +45,14 @@ export async function GET(request) {
       if (stateList.length > 0) {
         queryText = `
           SELECT DISTINCT
-            a.id, a.page_id, COALESCE(m.bylines, p.page_name, '') as bylines, a.ad_snapshot_url, a.ad_delivery_start_time,
-            a.ad_delivery_stop_time, a.currency, m.target_locations, m.publisher_platforms,
+            a.id, a.page_id, a.bylines, a.ad_snapshot_url, a.ad_delivery_start_time,
+            a.ad_delivery_stop_time, a.currency, a.target_locations, a.publisher_platforms,
             a.spend_lower, a.spend_upper, a.impressions_lower, a.impressions_upper,
-            m.estimated_audience_size_lower, m.estimated_audience_size_upper, a.platform,
+            a.estimated_audience_size_lower, a.estimated_audience_size_upper,
             r.spend_percentage, r.impressions_percentage
-          FROM unified.all_ads a
-          LEFT JOIN unified.all_pages p ON a.page_id = p.page_id AND a.platform = p.platform
-          LEFT JOIN meta_ads.ads m ON a.id = m.id AND a.platform = 'Meta'
-          LEFT JOIN meta_ads.ad_regions r ON a.id = r.ad_id AND a.platform = 'Meta'
-          WHERE (r.region = ANY($${paramCount}::text[]) OR a.platform != 'Meta')
+          FROM meta_ads.ads a
+          LEFT JOIN meta_ads.ad_regions r ON a.id = r.ad_id
+          WHERE r.region = ANY($${paramCount}::text[])
         `;
         params.push(stateList);
         paramCount++;
@@ -64,17 +60,15 @@ export async function GET(request) {
       }
     }
 
-    // Default query if no state filtering - unified schema with Meta + Google
+    // Default query if no state filtering - meta_ads schema
     if (!queryText) {
       queryText = `
         SELECT
           a.id, a.ad_snapshot_url, a.ad_delivery_start_time, a.ad_delivery_stop_time,
           a.page_id, a.spend_lower, a.spend_upper, a.impressions_lower, a.impressions_upper,
-          m.target_locations, m.publisher_platforms, COALESCE(m.bylines, p.page_name, '') as bylines, a.currency,
-          m.estimated_audience_size_lower, m.estimated_audience_size_upper, a.platform
-        FROM unified.all_ads a
-        LEFT JOIN unified.all_pages p ON a.page_id = p.page_id AND a.platform = p.platform
-        LEFT JOIN meta_ads.ads m ON a.id = m.id AND a.platform = 'Meta'
+          a.target_locations, a.publisher_platforms, a.bylines, a.currency,
+          a.estimated_audience_size_lower, a.estimated_audience_size_upper
+        FROM meta_ads.ads a
         WHERE 1=1
       `;
     }
@@ -104,12 +98,8 @@ export async function GET(request) {
     }
 
     if (search) {
-      // Search in bylines (via COALESCE of m.bylines/page_name) and page_id
-      if (useStateJoin) {
-        queryText += ` AND (COALESCE(m.bylines, p.page_name, '') ILIKE $${paramCount} OR CAST(a.page_id AS TEXT) ILIKE $${paramCount})`;
-      } else {
-        queryText += ` AND (COALESCE(m.bylines, p.page_name, '') ILIKE $${paramCount} OR CAST(a.page_id AS TEXT) ILIKE $${paramCount})`;
-      }
+      // Search in bylines and page_id
+      queryText += ` AND (a.bylines ILIKE $${paramCount} OR CAST(a.page_id AS TEXT) ILIKE $${paramCount})`;
       params.push(`%${search}%`);
       paramCount++;
     }
@@ -196,7 +186,7 @@ export async function GET(request) {
         currency: row.currency,
         estimatedAudience: `${(row.estimated_audience_size_lower || 0).toLocaleString()} - ${(row.estimated_audience_size_upper || 0).toLocaleString()}`
       };
-    }).filter(ad => ad.party !== 'Others'); // Only show classified ads (BJP, INC, AAP)
+    }); // Show all ads including 'Others'
 
     let filteredAds = ads;
     if (filterParty && filterParty !== 'All Parties') {
