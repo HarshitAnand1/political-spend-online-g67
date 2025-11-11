@@ -28,7 +28,7 @@ export async function GET(request) {
         FROM unified.all_ads a
         LEFT JOIN unified.all_pages p ON a.page_id = p.page_id AND a.platform = p.platform
         LEFT JOIN meta_ads.ads m ON a.id = m.id AND a.platform = 'Meta'
-        LEFT JOIN meta_ads.ad_regions r ON a.id = r.ad_id AND a.platform = 'Meta'
+        LEFT JOIN meta_ads.ad_regions r ON a.id = r.ad_id::text AND a.platform = 'Meta'
         WHERE (r.region = $${paramCount} OR a.platform != 'Meta')
       `;
       params.push(state);

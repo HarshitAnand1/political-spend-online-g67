@@ -20,12 +20,13 @@ export async function GET(request) {
         SELECT DISTINCT
           DATE(a.ad_delivery_start_time) as date,
           a.page_id,
-          a.bylines,
+          p.page_name as bylines,
           a.spend_lower,
           a.spend_upper,
           r.spend_percentage
-        FROM meta_ads.ads a
-        LEFT JOIN meta_ads.ad_regions r ON a.id = r.ad_id
+        FROM unified.all_ads a
+        LEFT JOIN unified.all_pages p ON a.page_id = p.page_id AND a.platform = p.platform
+        LEFT JOIN meta_ads.ad_regions r ON a.id = r.ad_id::text
         WHERE a.ad_delivery_start_time >= NOW() - INTERVAL '${parseInt(days)} days'
           AND a.ad_delivery_start_time IS NOT NULL
           AND r.region = $${paramCount}
@@ -33,15 +34,16 @@ export async function GET(request) {
       `;
       params.push(state);
     } else {
-      // No state filter - query all ads from meta_ads
+      // No state filter - query all ads from unified
       queryText = `
         SELECT
           DATE(a.ad_delivery_start_time) as date,
           a.page_id,
-          a.bylines,
+          p.page_name as bylines,
           a.spend_lower,
           a.spend_upper
-        FROM meta_ads.ads a
+        FROM unified.all_ads a
+        LEFT JOIN unified.all_pages p ON a.page_id = p.page_id AND a.platform = p.platform
         WHERE a.ad_delivery_start_time >= NOW() - INTERVAL '${parseInt(days)} days'
           AND a.ad_delivery_start_time IS NOT NULL
         ORDER BY date ASC

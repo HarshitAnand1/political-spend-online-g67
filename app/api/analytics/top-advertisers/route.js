@@ -21,26 +21,28 @@ export async function GET(request) {
       queryText = `
         SELECT
           a.page_id,
-          a.bylines,
+          p.page_name as bylines,
           COUNT(DISTINCT a.id) as ad_count,
           SUM((a.spend_lower + a.spend_upper) / 2 * COALESCE(r.spend_percentage, 1)) as total_spend,
           SUM((a.impressions_lower + a.impressions_upper) / 2 * COALESCE(r.impressions_percentage, 1)) as total_impressions
-        FROM meta_ads.ads a
-        LEFT JOIN meta_ads.ad_regions r ON a.id = r.ad_id
+        FROM unified.all_ads a
+        LEFT JOIN unified.all_pages p ON a.page_id = p.page_id AND a.platform = p.platform
+        LEFT JOIN meta_ads.ad_regions r ON a.id = r.ad_id::text
         WHERE r.region = $${paramCount}
       `;
       params.push(state);
       paramCount++;
     } else {
-      // No state filter - query all ads from meta_ads
+      // No state filter - query all ads from unified
       queryText = `
         SELECT
           a.page_id,
-          a.bylines,
+          p.page_name as bylines,
           COUNT(*) as ad_count,
           SUM((a.spend_lower + a.spend_upper) / 2) as total_spend,
           SUM((a.impressions_lower + a.impressions_upper) / 2) as total_impressions
-        FROM meta_ads.ads a
+        FROM unified.all_ads a
+        LEFT JOIN unified.all_pages p ON a.page_id = p.page_id AND a.platform = p.platform
         WHERE 1=1
       `;
     }
@@ -58,7 +60,7 @@ export async function GET(request) {
     }
 
     queryText += `
-      GROUP BY a.page_id, a.bylines
+      GROUP BY a.page_id, p.page_name
       HAVING SUM((a.spend_lower + a.spend_upper) / 2) > 0
       ORDER BY total_spend DESC
       LIMIT $${paramCount}

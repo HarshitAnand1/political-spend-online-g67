@@ -11,20 +11,21 @@ export async function GET(request) {
     const party = searchParams.get('party');
     const limit = parseInt(searchParams.get('limit') || '10');
 
-    // Use ad_regions table for accurate state data from meta_ads
+    // Use ad_regions table for accurate state data from unified
     let queryText = `
       SELECT
         r.region as state_name,
         a.page_id,
-        a.bylines,
+        p.page_name as bylines,
         a.spend_lower,
         a.spend_upper,
         a.impressions_lower,
         a.impressions_upper,
         r.spend_percentage,
         r.impressions_percentage
-      FROM meta_ads.ads a
-      LEFT JOIN meta_ads.ad_regions r ON a.id = r.ad_id
+      FROM unified.all_ads a
+      LEFT JOIN unified.all_pages p ON a.page_id = p.page_id AND a.platform = p.platform
+      LEFT JOIN meta_ads.ad_regions r ON a.id = r.ad_id::text
       WHERE r.region IS NOT NULL
     `;
 

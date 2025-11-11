@@ -24,12 +24,12 @@ export async function GET(request) {
     const endDate = searchParams.get('endDate');
     const party = searchParams.get('party');
 
-    // Query to get regional data from meta_ads ad_regions table
+    // Query to get regional data from unified with ad_regions table
     let queryText = `
       SELECT
         r.region,
         a.page_id,
-        a.bylines,
+        p.page_name as bylines,
         a.spend_lower,
         a.spend_upper,
         a.impressions_lower,
@@ -37,7 +37,8 @@ export async function GET(request) {
         r.spend_percentage,
         r.impressions_percentage
       FROM meta_ads.ad_regions r
-      JOIN meta_ads.ads a ON r.ad_id = a.id
+      JOIN unified.all_ads a ON r.ad_id::text = a.id
+      LEFT JOIN unified.all_pages p ON a.page_id = p.page_id AND a.platform = p.platform
       WHERE 1=1
     `;
 

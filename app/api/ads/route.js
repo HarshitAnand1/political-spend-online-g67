@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server';
 import { query } from '@/lib/db';
 import { classifyParty, formatSpendRange } from '@/lib/partyUtils';
-import { classifyLocations, formatLocationSummary } from '@/lib/geoUtils';
 
 export async function GET(request) {
   try {
@@ -24,17 +23,17 @@ export async function GET(request) {
     let paramCount = 1;
     let useStateJoin = false;
 
-    // Query from meta_ads schema for state filtering
+    // Query from unified schema for state filtering
     if (state && state !== 'All India') {
       queryText = `
         SELECT DISTINCT
-          a.id, a.page_id, a.bylines, a.ad_snapshot_url, a.ad_delivery_start_time,
-          a.ad_delivery_stop_time, a.currency, a.target_locations, a.publisher_platforms,
+          a.id, a.page_id, p.page_name as bylines, a.ad_snapshot_url, a.ad_delivery_start_time,
+          a.ad_delivery_stop_time, a.currency, a.platform,
           a.spend_lower, a.spend_upper, a.impressions_lower, a.impressions_upper,
-          a.estimated_audience_size_lower, a.estimated_audience_size_upper,
           r.spend_percentage, r.impressions_percentage
-        FROM meta_ads.ads a
-        LEFT JOIN meta_ads.ad_regions r ON a.id = r.ad_id
+        FROM unified.all_ads a
+        LEFT JOIN unified.all_pages p ON a.page_id = p.page_id AND a.platform = p.platform
+        LEFT JOIN meta_ads.ad_regions r ON a.id = r.ad_id::text
         WHERE r.region = $${paramCount}
       `;
       params.push(state);
@@ -45,13 +44,13 @@ export async function GET(request) {
       if (stateList.length > 0) {
         queryText = `
           SELECT DISTINCT
-            a.id, a.page_id, a.bylines, a.ad_snapshot_url, a.ad_delivery_start_time,
-            a.ad_delivery_stop_time, a.currency, a.target_locations, a.publisher_platforms,
+            a.id, a.page_id, p.page_name as bylines, a.ad_snapshot_url, a.ad_delivery_start_time,
+            a.ad_delivery_stop_time, a.currency, a.platform,
             a.spend_lower, a.spend_upper, a.impressions_lower, a.impressions_upper,
-            a.estimated_audience_size_lower, a.estimated_audience_size_upper,
             r.spend_percentage, r.impressions_percentage
-          FROM meta_ads.ads a
-          LEFT JOIN meta_ads.ad_regions r ON a.id = r.ad_id
+          FROM unified.all_ads a
+          LEFT JOIN unified.all_pages p ON a.page_id = p.page_id AND a.platform = p.platform
+          LEFT JOIN meta_ads.ad_regions r ON a.id = r.ad_id::text
           WHERE r.region = ANY($${paramCount}::text[])
         `;
         params.push(stateList);
@@ -60,15 +59,15 @@ export async function GET(request) {
       }
     }
 
-    // Default query if no state filtering - meta_ads schema
+    // Default query if no state filtering - unified schema
     if (!queryText) {
       queryText = `
         SELECT
           a.id, a.ad_snapshot_url, a.ad_delivery_start_time, a.ad_delivery_stop_time,
           a.page_id, a.spend_lower, a.spend_upper, a.impressions_lower, a.impressions_upper,
-          a.target_locations, a.publisher_platforms, a.bylines, a.currency,
-          a.estimated_audience_size_lower, a.estimated_audience_size_upper
-        FROM meta_ads.ads a
+          p.page_name as bylines, a.currency, a.platform
+        FROM unified.all_ads a
+        LEFT JOIN unified.all_pages p ON a.page_id = p.page_id AND a.platform = p.platform
         WHERE 1=1
       `;
     }
@@ -131,35 +130,17 @@ export async function GET(request) {
         Others: '#64748B'
       };
       
-      // Classify geographic locations with error handling
-      let geoClassification;
-      try {
-        geoClassification = classifyLocations(row.target_locations);
-      } catch (e) {
-        console.error('Error classifying locations:', e);
-        geoClassification = {
-          states: [],
-          regions: {},
-          primaryRegion: 'Unknown',
-          isNational: false,
-          stateCount: 0,
-          uniqueStates: []
-        };
-      }
-      
-      // Parse target_locations if it's a string, otherwise use as-is
-      let locations = row.target_locations;
-      if (typeof locations === 'string') {
-        try {
-          locations = JSON.parse(locations);
-        } catch (e) {
-          locations = null;
-        }
-      }
-      
-      const firstLocation = Array.isArray(locations) && locations.length > 0
-        ? locations[0]?.name || 'Unknown'
-        : 'Unknown';
+      // Geographic classification - simplified for unified schema
+      const geoClassification = {
+        states: [],
+        regions: {},
+        primaryRegion: row.platform || 'Unknown',
+        isNational: false,
+        stateCount: 0,
+        uniqueStates: []
+      };
+
+      const firstLocation = row.platform || 'Unknown';
 
       return {
         id: row.id,
@@ -172,19 +153,19 @@ export async function GET(request) {
         spendUpper: row.spend_upper,
         impressions: `${(row.impressions_lower || 0).toLocaleString()} - ${(row.impressions_upper || 0).toLocaleString()}`,
         state: firstLocation,
-        targetLocations: row.target_locations,
+        targetLocations: null,
         // Geographic classification
         region: geoClassification.primaryRegion || 'Unknown',
         isNational: geoClassification.isNational || false,
         stateCount: geoClassification.stateCount || 0,
-        locationSummary: formatLocationSummary(geoClassification),
-        platforms: row.publisher_platforms,
+        locationSummary: row.platform || 'Unknown',
+        platforms: [row.platform] || [],
         startDate: row.ad_delivery_start_time,
         endDate: row.ad_delivery_stop_time,
         snapshotUrl: row.ad_snapshot_url,
         img: row.ad_snapshot_url, // Use snapshot URL (will show placeholder with "View Ad" link)
         currency: row.currency,
-        estimatedAudience: `${(row.estimated_audience_size_lower || 0).toLocaleString()} - ${(row.estimated_audience_size_upper || 0).toLocaleString()}`
+        estimatedAudience: 'N/A'
       };
     }); // Show all ads including 'Others'
 
