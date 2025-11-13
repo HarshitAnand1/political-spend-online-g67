@@ -11,20 +11,20 @@ export async function GET(request) {
     const party = searchParams.get('party');
     const limit = parseInt(searchParams.get('limit') || '10');
 
-    // Use ad_regions table for accurate state data from meta_ads
+    // Use ad_regions table for accurate state data from unified
     let queryText = `
       SELECT
         r.region as state_name,
         a.page_id,
-        a.bylines,
+        p.page_name as bylines,
         a.spend_lower,
         a.spend_upper,
         a.impressions_lower,
         a.impressions_upper,
-        r.spend_percentage,
-        r.impressions_percentage
-      FROM meta_ads.ads a
-      LEFT JOIN meta_ads.ad_regions r ON a.id = r.ad_id
+        r.spend_percentage
+      FROM unified.all_ads a
+      LEFT JOIN unified.all_pages p ON a.page_id = p.page_id AND a.platform = p.platform
+      LEFT JOIN unified.all_ad_regions r ON a.id = r.ad_id AND LOWER(a.platform) = r.platform
       WHERE r.region IS NOT NULL
     `;
 
@@ -70,7 +70,7 @@ export async function GET(request) {
       const avgImpressions = ((row.impressions_lower || 0) + (row.impressions_upper || 0)) / 2;
 
       const regionalSpend = avgSpend * (row.spend_percentage || 1);
-      const regionalImpressions = avgImpressions * (row.impressions_percentage || 1);
+      const regionalImpressions = avgImpressions * (row.spend_percentage || 1);
 
       if (!stateMap[stateName]) {
         stateMap[stateName] = {

@@ -29,30 +29,31 @@ export async function GET(request) {
       queryText = `
         SELECT DISTINCT
           a.page_id,
-          a.bylines,
+          p.page_name as bylines,
           a.spend_lower,
           a.spend_upper,
           a.impressions_lower,
           a.impressions_upper,
-          r.spend_percentage,
-          r.impressions_percentage
-        FROM meta_ads.ads a
-        LEFT JOIN meta_ads.ad_regions r ON a.id = r.ad_id
+          r.spend_percentage
+        FROM unified.all_ads a
+        LEFT JOIN unified.all_pages p ON a.page_id = p.page_id AND a.platform = p.platform
+        LEFT JOIN unified.all_ad_regions r ON a.id = r.ad_id AND LOWER(a.platform) = r.platform
         WHERE r.region = $${paramCount}
       `;
       params.push(state);
       paramCount++;
     } else {
-      // No state filter - get all ads from meta_ads
+      // No state filter - get all ads from unified
       queryText = `
         SELECT
           a.page_id,
-          a.bylines,
+          p.page_name as bylines,
           a.spend_lower,
           a.spend_upper,
           a.impressions_lower,
           a.impressions_upper
-        FROM meta_ads.ads a
+        FROM unified.all_ads a
+        LEFT JOIN unified.all_pages p ON a.page_id = p.page_id AND a.platform = p.platform
         WHERE 1=1
       `;
     }
@@ -107,9 +108,7 @@ export async function GET(request) {
       // Apply regional percentages if state filter is active
       if (state && state !== 'All India' && row.spend_percentage) {
         avgSpend *= row.spend_percentage;
-      }
-      if (state && state !== 'All India' && row.impressions_percentage) {
-        avgImpressions *= row.impressions_percentage;
+        avgImpressions *= row.spend_percentage; // Use same percentage for impressions
       }
 
       totalSpend += avgSpend;
