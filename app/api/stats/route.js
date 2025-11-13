@@ -34,11 +34,10 @@ export async function GET(request) {
           a.spend_upper,
           a.impressions_lower,
           a.impressions_upper,
-          r.spend_percentage,
-          r.impressions_percentage
+          r.spend_percentage
         FROM unified.all_ads a
         LEFT JOIN unified.all_pages p ON a.page_id = p.page_id AND a.platform = p.platform
-        LEFT JOIN meta_ads.ad_regions r ON a.id = r.ad_id::text
+        LEFT JOIN unified.all_ad_regions r ON a.id = r.ad_id AND LOWER(a.platform) = r.platform
         WHERE r.region = $${paramCount}
       `;
       params.push(state);
@@ -109,9 +108,7 @@ export async function GET(request) {
       // Apply regional percentages if state filter is active
       if (state && state !== 'All India' && row.spend_percentage) {
         avgSpend *= row.spend_percentage;
-      }
-      if (state && state !== 'All India' && row.impressions_percentage) {
-        avgImpressions *= row.impressions_percentage;
+        avgImpressions *= row.spend_percentage; // Use same percentage for impressions
       }
 
       totalSpend += avgSpend;

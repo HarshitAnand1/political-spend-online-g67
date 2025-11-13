@@ -30,10 +30,9 @@ export async function GET(request) {
           a.id, a.page_id, p.page_name as bylines, a.ad_snapshot_url, a.ad_delivery_start_time,
           a.ad_delivery_stop_time, a.currency, a.platform,
           a.spend_lower, a.spend_upper, a.impressions_lower, a.impressions_upper,
-          r.spend_percentage, r.impressions_percentage
         FROM unified.all_ads a
         LEFT JOIN unified.all_pages p ON a.page_id = p.page_id AND a.platform = p.platform
-        LEFT JOIN meta_ads.ad_regions r ON a.id = r.ad_id::text
+        LEFT JOIN unified.all_ad_regions r ON a.id = r.ad_id AND LOWER(a.platform) = r.platform
         WHERE r.region = $${paramCount}
       `;
       params.push(state);
@@ -47,10 +46,9 @@ export async function GET(request) {
             a.id, a.page_id, p.page_name as bylines, a.ad_snapshot_url, a.ad_delivery_start_time,
             a.ad_delivery_stop_time, a.currency, a.platform,
             a.spend_lower, a.spend_upper, a.impressions_lower, a.impressions_upper,
-            r.spend_percentage, r.impressions_percentage
           FROM unified.all_ads a
           LEFT JOIN unified.all_pages p ON a.page_id = p.page_id AND a.platform = p.platform
-          LEFT JOIN meta_ads.ad_regions r ON a.id = r.ad_id::text
+          LEFT JOIN unified.all_ad_regions r ON a.id = r.ad_id AND LOWER(a.platform) = r.platform
           WHERE r.region = ANY($${paramCount}::text[])
         `;
         params.push(stateList);

@@ -34,10 +34,9 @@ export async function GET(request) {
         a.spend_upper,
         a.impressions_lower,
         a.impressions_upper,
-        r.spend_percentage,
-        r.impressions_percentage
-      FROM meta_ads.ad_regions r
-      JOIN unified.all_ads a ON r.ad_id::text = a.id
+        r.spend_percentage
+      FROM unified.all_ad_regions r
+      JOIN unified.all_ads a ON r.ad_id = a.id AND r.platform = LOWER(a.platform)
       LEFT JOIN unified.all_pages p ON a.page_id = p.page_id AND a.platform = p.platform
       WHERE 1=1
     `;
@@ -96,7 +95,7 @@ export async function GET(request) {
       const avgImpressions = ((row.impressions_lower || 0) + (row.impressions_upper || 0)) / 2;
 
       const regionalSpend = avgSpend * (row.spend_percentage || 1);
-      const regionalImpressions = avgImpressions * (row.impressions_percentage || 1);
+      const regionalImpressions = avgImpressions * (row.spend_percentage || 1);
 
       regionMap[regionName].totalSpend += regionalSpend;
       regionMap[regionName].totalImpressions += regionalImpressions;

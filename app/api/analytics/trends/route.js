@@ -26,7 +26,7 @@ export async function GET(request) {
           r.spend_percentage
         FROM unified.all_ads a
         LEFT JOIN unified.all_pages p ON a.page_id = p.page_id AND a.platform = p.platform
-        LEFT JOIN meta_ads.ad_regions r ON a.id = r.ad_id::text
+        LEFT JOIN unified.all_ad_regions r ON a.id = r.ad_id AND LOWER(a.platform) = r.platform
         WHERE a.ad_delivery_start_time >= NOW() - INTERVAL '${parseInt(days)} days'
           AND a.ad_delivery_start_time IS NOT NULL
           AND r.region = $${paramCount}

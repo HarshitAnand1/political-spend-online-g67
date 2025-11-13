@@ -27,7 +27,7 @@ export async function GET(request) {
           a.impressions_upper
         FROM unified.all_ads a
         LEFT JOIN unified.all_pages p ON a.page_id = p.page_id AND a.platform = p.platform
-        LEFT JOIN meta_ads.ad_regions r ON a.id = r.ad_id::text
+        LEFT JOIN unified.all_ad_regions r ON a.id = r.ad_id AND LOWER(a.platform) = r.platform
         WHERE r.region = $${paramCount}
       `;
       params.push(state);
