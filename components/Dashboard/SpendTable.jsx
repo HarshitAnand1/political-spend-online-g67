@@ -10,6 +10,7 @@ export default function SpendTable({ rows }) {
               <th className="p-2">Rank</th>
               <th className="p-2">Party</th>
               <th className="p-2 text-right">Total Spend</th>
+              <th className="p-2 text-right">Unofficial Spend</th>
               <th className="p-2 text-right">% of Total</th>
             </tr>
           </thead>
@@ -22,6 +23,9 @@ export default function SpendTable({ rows }) {
                   {r.name}
                 </td>
                 <td className="p-2 text-right font-semibold">₹{r.value} Cr</td>
+                <td className="p-2 text-right font-semibold text-orange-600">
+                  {r.unofficialSpend > 0 ? `₹${r.unofficialSpend} Cr` : '—'}
+                </td>
                 <td className="p-2 text-right text-slate-600">{r.percent}%</td>
               </tr>
             ))}

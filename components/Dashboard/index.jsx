@@ -14,7 +14,7 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true)
   const [stats, setStats] = useState({ totalAds: 0, totalPages: 0, totalSpend: 0, partyBreakdown: {} })
   const [spendData, setSpendData] = useState({})
-  const [lineSeries, setLineSeries] = useState({ labels: [], BJP: [], INC: [], AAP: [], 'Janata Dal (United)': [], RJD: [], 'Jan Suraaj': [], LJP: [], HAM: [], VIP: [], AIMIM: [], Others: [] })
+  const [lineSeries, setLineSeries] = useState({ labels: [], BJP: [], INC: [], AAP: [], 'Janata Dal (United)': [], RJD: [], 'Jan Suraaj': [], LJP: [], HAM: [], VIP: [], AIMIM: [], DMK: [], AITC: [], NCP: [], TDP: [], AIADMK: [], Others: [] })
   const [topAdvertisers, setTopAdvertisers] = useState([])
   const [geoData, setGeoData] = useState([])
 
@@ -74,7 +74,7 @@ export default function Dashboard() {
       return value || spendData[partyCode] || 0
     }
 
-    // Get values for all 10 parties + Others
+    // Get values for all parties + Others
     const lakhs = {
       BJP: getValue('BJP'),
       INC: getValue('INC'),
@@ -86,6 +86,11 @@ export default function Dashboard() {
       HAM: getValue('HAM'),
       VIP: getValue('VIP'),
       AIMIM: getValue('AIMIM'),
+      DMK: getValue('DMK'),
+      AITC: getValue('AITC'),
+      NCP: getValue('NCP'),
+      TDP: getValue('TDP'),
+      AIADMK: getValue('AIADMK'),
       Others: getValue('Others')
     }
 
@@ -101,6 +106,11 @@ export default function Dashboard() {
       HAM: parseFloat(((lakhs.HAM || 0) / 100).toFixed(2)),
       VIP: parseFloat(((lakhs.VIP || 0) / 100).toFixed(2)),
       AIMIM: parseFloat(((lakhs.AIMIM || 0) / 100).toFixed(2)),
+      DMK: parseFloat(((lakhs.DMK || 0) / 100).toFixed(2)),
+      AITC: parseFloat(((lakhs.AITC || 0) / 100).toFixed(2)),
+      NCP: parseFloat(((lakhs.NCP || 0) / 100).toFixed(2)),
+      TDP: parseFloat(((lakhs.TDP || 0) / 100).toFixed(2)),
+      AIADMK: parseFloat(((lakhs.AIADMK || 0) / 100).toFixed(2)),
       Others: parseFloat(((lakhs.Others || 0) / 100).toFixed(2))
     }
   }, [stats, spendData])
@@ -119,6 +129,11 @@ export default function Dashboard() {
       HAM: (lineSeries.HAM || []).map(v => parseFloat((v / 100).toFixed(2))),
       VIP: (lineSeries.VIP || []).map(v => parseFloat((v / 100).toFixed(2))),
       AIMIM: (lineSeries.AIMIM || []).map(v => parseFloat((v / 100).toFixed(2))),
+      DMK: (lineSeries.DMK || []).map(v => parseFloat((v / 100).toFixed(2))),
+      AITC: (lineSeries.AITC || []).map(v => parseFloat((v / 100).toFixed(2))),
+      NCP: (lineSeries.NCP || []).map(v => parseFloat((v / 100).toFixed(2))),
+      TDP: (lineSeries.TDP || []).map(v => parseFloat((v / 100).toFixed(2))),
+      AIADMK: (lineSeries.AIADMK || []).map(v => parseFloat((v / 100).toFixed(2))),
       Others: (lineSeries.Others || []).map(v => parseFloat((v / 100).toFixed(2)))
     }
   }, [lineSeries])
@@ -133,14 +148,19 @@ export default function Dashboard() {
         const color = getPartyColor(partyCode)
         const initial = partyCode.charAt(0).toUpperCase()
 
+        // Get unofficial spend from partyBreakdown (convert from Lakhs to Crores)
+        const unofficialSpendLakhs = stats.partyBreakdown[partyCode]?.unofficialSpend || 0
+        const unofficialSpendCrores = parseFloat((unofficialSpendLakhs / 100).toFixed(2))
+
         return {
           name: getPartyName(partyCode),
           logo: `https://placehold.co/24x24/${color.substring(1)}/FFFFFF?text=${initial}`,
           value: value.toFixed(2),
+          unofficialSpend: unofficialSpendCrores,
           percent: ((value / totalSum) * 100).toFixed(1),
         }
       })
-  }, [totals])
+  }, [totals, stats.partyBreakdown])
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">

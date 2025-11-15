@@ -68,7 +68,7 @@ export async function GET(request) {
       allDates.add(dateStr);
 
       if (!datePartyMap[dateStr]) {
-        datePartyMap[dateStr] = { BJP: 0, INC: 0, AAP: 0, 'Janata Dal (United)': 0, RJD: 0, 'Jan Suraaj': 0, LJP: 0, HAM: 0, VIP: 0, AIMIM: 0, Others: 0 };
+        datePartyMap[dateStr] = { BJP: 0, INC: 0, AAP: 0, 'Janata Dal (United)': 0, RJD: 0, 'Jan Suraaj': 0, LJP: 0, HAM: 0, VIP: 0, AIMIM: 0, DMK: 0, AITC: 0, NCP: 0, TDP: 0, AIADMK: 0, Others: 0 };
       }
 
       let avgSpend = ((row.spend_lower || 0) + (row.spend_upper || 0)) / 2;
@@ -98,6 +98,11 @@ export async function GET(request) {
       HAM: labels.map(d => parseFloat(((datePartyMap[d]?.HAM || 0) / 100000).toFixed(2))),
       VIP: labels.map(d => parseFloat(((datePartyMap[d]?.VIP || 0) / 100000).toFixed(2))),
       AIMIM: labels.map(d => parseFloat(((datePartyMap[d]?.AIMIM || 0) / 100000).toFixed(2))),
+      DMK: labels.map(d => parseFloat(((datePartyMap[d]?.DMK || 0) / 100000).toFixed(2))),
+      AITC: labels.map(d => parseFloat(((datePartyMap[d]?.AITC || 0) / 100000).toFixed(2))),
+      NCP: labels.map(d => parseFloat(((datePartyMap[d]?.NCP || 0) / 100000).toFixed(2))),
+      TDP: labels.map(d => parseFloat(((datePartyMap[d]?.TDP || 0) / 100000).toFixed(2))),
+      AIADMK: labels.map(d => parseFloat(((datePartyMap[d]?.AIADMK || 0) / 100000).toFixed(2))),
       Others: labels.map(d => parseFloat(((datePartyMap[d]?.Others || 0) / 100000).toFixed(2)))
     };
 

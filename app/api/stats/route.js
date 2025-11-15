@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { query } from '@/lib/db';
-import { classifyParty } from '@/lib/partyUtils';
+import { classifyParty, isThirdPartyAdvertiser } from '@/lib/partyUtils';
 import { statsCache } from '@/lib/cache';
 
 export async function GET(request) {
@@ -78,17 +78,22 @@ export async function GET(request) {
     let totalSpend = 0;
     let totalImpressions = 0;
     const partyStats = {
-      BJP: { count: 0, spend: 0, impressions: 0 },
-      INC: { count: 0, spend: 0, impressions: 0 },
-      AAP: { count: 0, spend: 0, impressions: 0 },
-      'Janata Dal (United)': { count: 0, spend: 0, impressions: 0 },
-      RJD: { count: 0, spend: 0, impressions: 0 },
-      'Jan Suraaj': { count: 0, spend: 0, impressions: 0 },
-      LJP: { count: 0, spend: 0, impressions: 0 },
-      HAM: { count: 0, spend: 0, impressions: 0 },
-      VIP: { count: 0, spend: 0, impressions: 0 },
-      AIMIM: { count: 0, spend: 0, impressions: 0 },
-      Others: { count: 0, spend: 0, impressions: 0 }
+      BJP: { count: 0, spend: 0, impressions: 0, unofficialSpend: 0 },
+      INC: { count: 0, spend: 0, impressions: 0, unofficialSpend: 0 },
+      AAP: { count: 0, spend: 0, impressions: 0, unofficialSpend: 0 },
+      'Janata Dal (United)': { count: 0, spend: 0, impressions: 0, unofficialSpend: 0 },
+      RJD: { count: 0, spend: 0, impressions: 0, unofficialSpend: 0 },
+      'Jan Suraaj': { count: 0, spend: 0, impressions: 0, unofficialSpend: 0 },
+      LJP: { count: 0, spend: 0, impressions: 0, unofficialSpend: 0 },
+      HAM: { count: 0, spend: 0, impressions: 0, unofficialSpend: 0 },
+      VIP: { count: 0, spend: 0, impressions: 0, unofficialSpend: 0 },
+      AIMIM: { count: 0, spend: 0, impressions: 0, unofficialSpend: 0 },
+      DMK: { count: 0, spend: 0, impressions: 0, unofficialSpend: 0 },
+      AITC: { count: 0, spend: 0, impressions: 0, unofficialSpend: 0 },
+      NCP: { count: 0, spend: 0, impressions: 0, unofficialSpend: 0 },
+      TDP: { count: 0, spend: 0, impressions: 0, unofficialSpend: 0 },
+      AIADMK: { count: 0, spend: 0, impressions: 0, unofficialSpend: 0 },
+      Others: { count: 0, spend: 0, impressions: 0, unofficialSpend: 0 }
     };
 
     result.rows.forEach(row => {
@@ -117,6 +122,18 @@ export async function GET(request) {
       partyStats[adParty].count++;
       partyStats[adParty].spend += avgSpend;
       partyStats[adParty].impressions += avgImpressions;
+
+      // Track ALL spending from third-party advertisers (will filter by 20L threshold later)
+      if (isThirdPartyAdvertiser(row.bylines)) {
+        partyStats[adParty].unofficialSpend += avgSpend;
+      }
+    });
+
+    // Only show unofficial spend if total is > 20 lakhs (2000000 paise)
+    Object.keys(partyStats).forEach(party => {
+      if (partyStats[party].unofficialSpend < 2000000) {
+        partyStats[party].unofficialSpend = 0;
+      }
     });
 
     const responseData = {
@@ -125,63 +142,17 @@ export async function GET(request) {
       totalSpend: parseFloat((totalSpend / 100000).toFixed(2)), // in Lakhs
       totalImpressions: parseInt(totalImpressions),
       avgImpressions: totalAds > 0 ? parseInt(totalImpressions / totalAds) : 0,
-      partyBreakdown: {
-        BJP: {
-          spend: parseFloat((partyStats.BJP.spend / 100000).toFixed(2)),
-          count: partyStats.BJP.count,
-          impressions: parseInt(partyStats.BJP.impressions)
-        },
-        INC: {
-          spend: parseFloat((partyStats.INC.spend / 100000).toFixed(2)),
-          count: partyStats.INC.count,
-          impressions: parseInt(partyStats.INC.impressions)
-        },
-        AAP: {
-          spend: parseFloat((partyStats.AAP.spend / 100000).toFixed(2)),
-          count: partyStats.AAP.count,
-          impressions: parseInt(partyStats.AAP.impressions)
-        },
-        'Janata Dal (United)': {
-          spend: parseFloat((partyStats['Janata Dal (United)'].spend / 100000).toFixed(2)),
-          count: partyStats['Janata Dal (United)'].count,
-          impressions: parseInt(partyStats['Janata Dal (United)'].impressions)
-        },
-        RJD: {
-          spend: parseFloat((partyStats.RJD.spend / 100000).toFixed(2)),
-          count: partyStats.RJD.count,
-          impressions: parseInt(partyStats.RJD.impressions)
-        },
-        'Jan Suraaj': {
-          spend: parseFloat((partyStats['Jan Suraaj'].spend / 100000).toFixed(2)),
-          count: partyStats['Jan Suraaj'].count,
-          impressions: parseInt(partyStats['Jan Suraaj'].impressions)
-        },
-        LJP: {
-          spend: parseFloat((partyStats.LJP.spend / 100000).toFixed(2)),
-          count: partyStats.LJP.count,
-          impressions: parseInt(partyStats.LJP.impressions)
-        },
-        HAM: {
-          spend: parseFloat((partyStats.HAM.spend / 100000).toFixed(2)),
-          count: partyStats.HAM.count,
-          impressions: parseInt(partyStats.HAM.impressions)
-        },
-        VIP: {
-          spend: parseFloat((partyStats.VIP.spend / 100000).toFixed(2)),
-          count: partyStats.VIP.count,
-          impressions: parseInt(partyStats.VIP.impressions)
-        },
-        AIMIM: {
-          spend: parseFloat((partyStats.AIMIM.spend / 100000).toFixed(2)),
-          count: partyStats.AIMIM.count,
-          impressions: parseInt(partyStats.AIMIM.impressions)
-        },
-        Others: {
-          spend: parseFloat((partyStats.Others.spend / 100000).toFixed(2)),
-          count: partyStats.Others.count,
-          impressions: parseInt(partyStats.Others.impressions)
-        }
-      }
+      partyBreakdown: Object.fromEntries(
+        Object.entries(partyStats).map(([party, stats]) => [
+          party,
+          {
+            spend: parseFloat((stats.spend / 100000).toFixed(2)),
+            count: stats.count,
+            impressions: parseInt(stats.impressions),
+            unofficialSpend: parseFloat((stats.unofficialSpend / 100000).toFixed(2))
+          }
+        ])
+      )
     };
 
     // Cache the response
