@@ -88,6 +88,46 @@ export function SpendLineChart({ labels, series }) {
         fill: true,
         tension: 0.3,
       },
+      series.DMK && {
+        label: 'DMK',
+        data: series.DMK,
+        borderColor: '#DC2626',
+        backgroundColor: '#DC262633',
+        fill: true,
+        tension: 0.3,
+      },
+      series.AITC && {
+        label: 'AITC',
+        data: series.AITC,
+        borderColor: '#16A34A',
+        backgroundColor: '#16A34A33',
+        fill: true,
+        tension: 0.3,
+      },
+      series.NCP && {
+        label: 'NCP',
+        data: series.NCP,
+        borderColor: '#2563EB',
+        backgroundColor: '#2563EB33',
+        fill: true,
+        tension: 0.3,
+      },
+      series.TDP && {
+        label: 'TDP',
+        data: series.TDP,
+        borderColor: '#FBBF24',
+        backgroundColor: '#FBBF2433',
+        fill: true,
+        tension: 0.3,
+      },
+      series.AIADMK && {
+        label: 'AIADMK',
+        data: series.AIADMK,
+        borderColor: '#059669',
+        backgroundColor: '#05966933',
+        fill: true,
+        tension: 0.3,
+      },
       series.Others && {
         label: 'Others',
         data: series.Others,
@@ -134,6 +174,11 @@ export function SpendPieChart({ totals = {} }) {
     HAM: '#92400E',
     VIP: '#0891B2',
     AIMIM: '#14532D',
+    DMK: '#DC2626',
+    AITC: '#16A34A',
+    NCP: '#2563EB',
+    TDP: '#FBBF24',
+    AIADMK: '#059669',
     Others: '#64748B'
   }
 

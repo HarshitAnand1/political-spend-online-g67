@@ -43,12 +43,6 @@ export default function RegionalAnalytics({ data = [] }) {
                     <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">
                       {region.region} India
                     </span>
-                    <span 
-                      className="inline-block px-2 py-0.5 rounded text-xs font-semibold text-white"
-                      style={{ backgroundColor: partyColors[region.dominantParty] }}
-                    >
-                      {region.dominantParty}
-                    </span>
                   </div>
                   <div className="flex items-center gap-3 mt-1 text-xs text-slate-500 dark:text-slate-400">
                     <span>{region.stateCount} states</span>
