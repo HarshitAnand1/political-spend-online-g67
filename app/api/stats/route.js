@@ -93,6 +93,14 @@ export async function GET(request) {
       NCP: { count: 0, spend: 0, impressions: 0, unofficialSpend: 0 },
       TDP: { count: 0, spend: 0, impressions: 0, unofficialSpend: 0 },
       AIADMK: { count: 0, spend: 0, impressions: 0, unofficialSpend: 0 },
+      SP: { count: 0, spend: 0, impressions: 0, unofficialSpend: 0 },
+      BSP: { count: 0, spend: 0, impressions: 0, unofficialSpend: 0 },
+      'Shiv Sena': { count: 0, spend: 0, impressions: 0, unofficialSpend: 0 },
+      BJD: { count: 0, spend: 0, impressions: 0, unofficialSpend: 0 },
+      YSRCP: { count: 0, spend: 0, impressions: 0, unofficialSpend: 0 },
+      BRS: { count: 0, spend: 0, impressions: 0, unofficialSpend: 0 },
+      'CPI(M)': { count: 0, spend: 0, impressions: 0, unofficialSpend: 0 },
+      'JD(S)': { count: 0, spend: 0, impressions: 0, unofficialSpend: 0 },
       Others: { count: 0, spend: 0, impressions: 0, unofficialSpend: 0 }
     };
 

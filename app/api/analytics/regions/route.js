@@ -86,7 +86,7 @@ export async function GET(request) {
           totalSpend: 0,
           totalImpressions: 0,
           adCount: 0,
-          parties: { BJP: 0, INC: 0, AAP: 0, 'Janata Dal (United)': 0, RJD: 0, 'Jan Suraaj': 0, LJP: 0, HAM: 0, VIP: 0, AIMIM: 0, Others: 0 }
+          parties: {}  // Dynamic party tracking
         };
       }
 
@@ -100,6 +100,11 @@ export async function GET(request) {
       regionMap[regionName].totalSpend += regionalSpend;
       regionMap[regionName].totalImpressions += regionalImpressions;
       regionMap[regionName].adCount++;
+
+      // Track party spend dynamically
+      if (!regionMap[regionName].parties[adParty]) {
+        regionMap[regionName].parties[adParty] = 0;
+      }
       regionMap[regionName].parties[adParty] += regionalSpend;
 
       seenAds.add(`${row.page_id}`);
@@ -109,7 +114,18 @@ export async function GET(request) {
 
     // Convert to array and format
     const regions = Object.entries(regionMap).map(([name, data]) => {
-      const dominantParty = Object.entries(data.parties).reduce((a, b) => b[1] > a[1] ? b : a)[0];
+      // Sort parties by spend and get top 5
+      const sortedParties = Object.entries(data.parties)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 5);
+
+      const dominantParty = sortedParties.length > 0 ? sortedParties[0][0] : 'Others';
+
+      // Create partyBreakdown with top 5 parties
+      const partyBreakdown = {};
+      sortedParties.forEach(([party, spend]) => {
+        partyBreakdown[party] = formatCurrency(spend);
+      });
 
       return {
         region: name,
@@ -120,19 +136,7 @@ export async function GET(request) {
         stateCount: 1, // Each region is essentially a state/location
         states: [name],
         dominantParty: dominantParty,
-        partyBreakdown: {
-          BJP: formatCurrency(data.parties.BJP),
-          INC: formatCurrency(data.parties.INC),
-          AAP: formatCurrency(data.parties.AAP),
-          'Janata Dal (United)': formatCurrency(data.parties['Janata Dal (United)']),
-          RJD: formatCurrency(data.parties.RJD),
-          'Jan Suraaj': formatCurrency(data.parties['Jan Suraaj']),
-          LJP: formatCurrency(data.parties.LJP),
-          HAM: formatCurrency(data.parties.HAM),
-          VIP: formatCurrency(data.parties.VIP),
-          AIMIM: formatCurrency(data.parties.AIMIM),
-          Others: formatCurrency(data.parties.Others)
-        },
+        partyBreakdown: partyBreakdown,
         color: REGION_COLORS[name] || '#64748B'
       };
     }).sort((a, b) => b.spendRaw - a.spendRaw);

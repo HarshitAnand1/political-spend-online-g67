@@ -14,7 +14,7 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true)
   const [stats, setStats] = useState({ totalAds: 0, totalPages: 0, totalSpend: 0, partyBreakdown: {} })
   const [spendData, setSpendData] = useState({})
-  const [lineSeries, setLineSeries] = useState({ labels: [], BJP: [], INC: [], AAP: [], 'Janata Dal (United)': [], RJD: [], 'Jan Suraaj': [], LJP: [], HAM: [], VIP: [], AIMIM: [], DMK: [], AITC: [], NCP: [], TDP: [], AIADMK: [], Others: [] })
+  const [lineSeries, setLineSeries] = useState({ labels: [], BJP: [], INC: [], AAP: [], 'Janata Dal (United)': [], RJD: [], 'Jan Suraaj': [], LJP: [], HAM: [], VIP: [], AIMIM: [], DMK: [], AITC: [], NCP: [], TDP: [], AIADMK: [], SP: [], BSP: [], 'Shiv Sena': [], BJD: [], YSRCP: [], BRS: [], 'CPI(M)': [], 'JD(S)': [], Others: [] })
   const [topAdvertisers, setTopAdvertisers] = useState([])
   const [geoData, setGeoData] = useState([])
 
@@ -91,6 +91,14 @@ export default function Dashboard() {
       NCP: getValue('NCP'),
       TDP: getValue('TDP'),
       AIADMK: getValue('AIADMK'),
+      SP: getValue('SP'),
+      BSP: getValue('BSP'),
+      'Shiv Sena': getValue('Shiv Sena'),
+      BJD: getValue('BJD'),
+      YSRCP: getValue('YSRCP'),
+      BRS: getValue('BRS'),
+      'CPI(M)': getValue('CPI(M)'),
+      'JD(S)': getValue('JD(S)'),
       Others: getValue('Others')
     }
 
@@ -111,6 +119,14 @@ export default function Dashboard() {
       NCP: parseFloat(((lakhs.NCP || 0) / 100).toFixed(2)),
       TDP: parseFloat(((lakhs.TDP || 0) / 100).toFixed(2)),
       AIADMK: parseFloat(((lakhs.AIADMK || 0) / 100).toFixed(2)),
+      SP: parseFloat(((lakhs.SP || 0) / 100).toFixed(2)),
+      BSP: parseFloat(((lakhs.BSP || 0) / 100).toFixed(2)),
+      'Shiv Sena': parseFloat(((lakhs['Shiv Sena'] || 0) / 100).toFixed(2)),
+      BJD: parseFloat(((lakhs.BJD || 0) / 100).toFixed(2)),
+      YSRCP: parseFloat(((lakhs.YSRCP || 0) / 100).toFixed(2)),
+      BRS: parseFloat(((lakhs.BRS || 0) / 100).toFixed(2)),
+      'CPI(M)': parseFloat(((lakhs['CPI(M)'] || 0) / 100).toFixed(2)),
+      'JD(S)': parseFloat(((lakhs['JD(S)'] || 0) / 100).toFixed(2)),
       Others: parseFloat(((lakhs.Others || 0) / 100).toFixed(2))
     }
   }, [stats, spendData])
@@ -134,6 +150,14 @@ export default function Dashboard() {
       NCP: (lineSeries.NCP || []).map(v => parseFloat((v / 100).toFixed(2))),
       TDP: (lineSeries.TDP || []).map(v => parseFloat((v / 100).toFixed(2))),
       AIADMK: (lineSeries.AIADMK || []).map(v => parseFloat((v / 100).toFixed(2))),
+      SP: (lineSeries.SP || []).map(v => parseFloat((v / 100).toFixed(2))),
+      BSP: (lineSeries.BSP || []).map(v => parseFloat((v / 100).toFixed(2))),
+      'Shiv Sena': (lineSeries['Shiv Sena'] || []).map(v => parseFloat((v / 100).toFixed(2))),
+      BJD: (lineSeries.BJD || []).map(v => parseFloat((v / 100).toFixed(2))),
+      YSRCP: (lineSeries.YSRCP || []).map(v => parseFloat((v / 100).toFixed(2))),
+      BRS: (lineSeries.BRS || []).map(v => parseFloat((v / 100).toFixed(2))),
+      'CPI(M)': (lineSeries['CPI(M)'] || []).map(v => parseFloat((v / 100).toFixed(2))),
+      'JD(S)': (lineSeries['JD(S)'] || []).map(v => parseFloat((v / 100).toFixed(2))),
       Others: (lineSeries.Others || []).map(v => parseFloat((v / 100).toFixed(2)))
     }
   }, [lineSeries])

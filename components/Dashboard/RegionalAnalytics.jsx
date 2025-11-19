@@ -16,9 +16,26 @@ export default function RegionalAnalytics({ data = [] }) {
     BJP: '#FF9933',
     INC: '#138808',
     AAP: '#0073e6',
-    'Janata Dal (United)': '#15803d',
-    RJD: '#22c55e',
-    'Jan Suraaj': '#ef4444',
+    'Janata Dal (United)': '#006400',
+    RJD: '#008000',
+    'Jan Suraaj': '#FF6347',
+    LJP: '#9333EA',
+    HAM: '#92400E',
+    VIP: '#0891B2',
+    AIMIM: '#14532D',
+    DMK: '#DC2626',
+    AITC: '#16A34A',
+    NCP: '#2563EB',
+    TDP: '#FBBF24',
+    AIADMK: '#059669',
+    SP: '#E11D48',
+    BSP: '#3B82F6',
+    'Shiv Sena': '#F97316',
+    BJD: '#10B981',
+    YSRCP: '#7C3AED',
+    BRS: '#EC4899',
+    'CPI(M)': '#B91C1C',
+    'JD(S)': '#65A30D',
     Others: '#64748B'
   }
 
@@ -74,16 +91,16 @@ export default function RegionalAnalytics({ data = [] }) {
               />
             </div>
             
-            {/* Party breakdown mini-bars */}
-            <div className="grid grid-cols-4 gap-2 mt-2">
+            {/* Party breakdown mini-bars - Top 5 parties */}
+            <div className="grid grid-cols-5 gap-2 mt-2">
               {Object.entries(region.partyBreakdown).map(([party, spend]) => (
                 <div key={party} className="text-center">
-                  <div className="text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">
+                  <div className="text-xs font-medium text-slate-600 dark:text-slate-400 mb-1 truncate" title={party}>
                     {party}
                   </div>
-                  <div 
+                  <div
                     className="h-2 rounded-full"
-                    style={{ backgroundColor: partyColors[party] }}
+                    style={{ backgroundColor: partyColors[party] || '#64748B' }}
                   />
                   <div className="text-xs text-slate-500 dark:text-slate-400 mt-1">
                     {spend}
