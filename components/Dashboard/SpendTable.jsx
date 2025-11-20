@@ -1,4 +1,8 @@
 export default function SpendTable({ rows }) {
+  // Separate "Others" from ranked parties
+  const rankedParties = rows.filter(r => r.name !== 'Others')
+  const othersRow = rows.find(r => r.name === 'Others')
+
   return (
     <div className="mt-6 bg-white p-4 rounded-lg border border-slate-200 dark:bg-slate-900">
       <h3 className="font-semibold mb-1">Party Spend Summary</h3>
@@ -15,7 +19,7 @@ export default function SpendTable({ rows }) {
             </tr>
           </thead>
           <tbody>
-            {rows.map((r, idx) => (
+            {rankedParties.map((r, idx) => (
               <tr className="border-b" key={r.name}>
                 <td className="p-2 font-medium text-slate-500">{idx + 1}</td>
                 <td className="p-2 font-medium flex items-center">
@@ -29,6 +33,20 @@ export default function SpendTable({ rows }) {
                 <td className="p-2 text-right text-slate-600">{r.percent}%</td>
               </tr>
             ))}
+            {othersRow && (
+              <tr className="border-b bg-slate-50 dark:bg-slate-800" key="others">
+                <td className="p-2 font-medium text-slate-400">—</td>
+                <td className="p-2 font-medium flex items-center">
+                  <img src={othersRow.logo} alt="Others Logo" className="w-6 h-6 object-contain rounded-full mr-2" />
+                  {othersRow.name}
+                </td>
+                <td className="p-2 text-right font-semibold">₹{othersRow.value} Cr</td>
+                <td className="p-2 text-right font-semibold text-orange-600">
+                  {othersRow.unofficialSpend > 0 ? `₹${othersRow.unofficialSpend} Cr` : '—'}
+                </td>
+                <td className="p-2 text-right text-slate-600">{othersRow.percent}%</td>
+              </tr>
+            )}
           </tbody>
         </table>
       </div>
