@@ -239,7 +239,7 @@ export function SpendPieChart({ totals = {} }) {
     VIP: '#0891B2',
     AIMIM: '#14532D',
     DMK: '#DC2626',
-    AITC: '#16A34A',
+    AITC: '#14B8A6',
     NCP: '#2563EB',
     TDP: '#FBBF24',
     AIADMK: '#059669',
