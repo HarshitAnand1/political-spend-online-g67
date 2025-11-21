@@ -13,7 +13,12 @@ export async function GET(request) {
     const party = searchParams.get('party');
     const limit = parseInt(searchParams.get('limit') || '10');
 
-    // Query from unified schema with JOINs
+    // If date filters are present, use daily_spend_by_advertiser for accurate calculations
+    if (startDate || endDate) {
+      return await getTopAdvertisersFromDailySpend(startDate, endDate, state, party, limit);
+    }
+
+    // Query from unified schema with JOINs (no date filter)
     let queryText;
     const params = [];
     let paramCount = 1;
@@ -46,18 +51,6 @@ export async function GET(request) {
         LEFT JOIN unified.all_pages p ON a.page_id = p.page_id AND a.platform = p.platform
         WHERE 1=1
       `;
-    }
-
-    if (startDate) {
-      queryText += ` AND a.ad_delivery_start_time >= $${paramCount}`;
-      params.push(startDate);
-      paramCount++;
-    }
-
-    if (endDate) {
-      queryText += ` AND a.ad_delivery_stop_time <= $${paramCount}`;
-      params.push(endDate);
-      paramCount++;
     }
 
     queryText += `
@@ -108,5 +101,114 @@ export async function GET(request) {
       { error: 'Failed to fetch top advertisers', details: error.message },
       { status: 500 }
     );
+  }
+}
+
+// Helper function to get top advertisers from daily_spend_by_advertiser table
+async function getTopAdvertisersFromDailySpend(startDate, endDate, state, party, limit) {
+  try {
+    // Query daily spend data with date filters
+    let queryText = `
+      SELECT
+        d.advertiser_id as page_id,
+        d.advertiser_name as bylines,
+        d.platform,
+        SUM(d.total_daily_spend) as total_spend,
+        SUM(d.total_daily_impressions) as total_impressions,
+        MAX(d.active_ads) as max_active_ads
+      FROM unified.daily_spend_by_advertiser d
+      WHERE 1=1
+    `;
+
+    const params = [];
+    let paramCount = 1;
+
+    if (startDate) {
+      queryText += ` AND d.snapshot_date >= $${paramCount}`;
+      params.push(startDate);
+      paramCount++;
+    }
+
+    if (endDate) {
+      queryText += ` AND d.snapshot_date <= $${paramCount}`;
+      params.push(endDate);
+      paramCount++;
+    }
+
+    queryText += `
+      GROUP BY d.advertiser_id, d.advertiser_name, d.platform
+      HAVING SUM(d.total_daily_spend) > 0
+      ORDER BY total_spend DESC
+      LIMIT $${paramCount}
+    `;
+    params.push(limit * 3); // Get more to account for filtering
+
+    const result = await query(queryText, params);
+
+    // For state filtering, we need to check if advertisers have ads targeting the state
+    let stateFilteredAdvertisers = null;
+    if (state && state !== 'All India') {
+      const stateQuery = `
+        SELECT DISTINCT a.page_id
+        FROM unified.all_ads a
+        JOIN unified.all_ad_regions r ON a.id = r.ad_id AND LOWER(a.platform) = r.platform
+        WHERE r.region = $1
+      `;
+      const stateResult = await query(stateQuery, [state]);
+      stateFilteredAdvertisers = new Set(stateResult.rows.map(row => row.page_id));
+    }
+
+    // Calculate total spend for percentage
+    let totalSpend = 0;
+    let advertisers = result.rows
+      .filter(row => {
+        // Apply state filter
+        if (stateFilteredAdvertisers && !stateFilteredAdvertisers.has(row.page_id)) {
+          return false;
+        }
+        // Filter out non-political advertisers
+        if (isNonPoliticalAdvertiser(row.bylines)) {
+          return false;
+        }
+        return true;
+      })
+      .map(row => {
+        const adParty = classifyParty(row.page_id, row.bylines);
+        const spend = parseFloat(row.total_spend || 0);
+        totalSpend += spend;
+
+        return {
+          page_id: row.page_id,
+          name: row.bylines || `Page ${row.page_id}`,
+          party: adParty,
+          ad_count: parseInt(row.max_active_ads || 0),
+          spend: formatCurrency(spend),
+          spendRaw: spend,
+          impressions: parseInt(row.total_impressions || 0),
+          percentage: '0' // Will be calculated after total is known
+        };
+      });
+
+    // Filter by party if specified
+    if (party && party !== 'All Parties') {
+      advertisers = advertisers.filter(ad => ad.party === party);
+    }
+
+    // Limit to requested number after filtering
+    advertisers = advertisers.slice(0, limit);
+
+    // Calculate percentages
+    advertisers.forEach(ad => {
+      ad.percentage = totalSpend > 0 ? ((ad.spendRaw / totalSpend) * 100).toFixed(1) : '0';
+    });
+
+    return NextResponse.json({
+      advertisers,
+      totalSpend: formatCurrency(totalSpend)
+    });
+
+  } catch (error) {
+    console.error('Error fetching top advertisers from daily spend:', error);
+    throw error;
   }
 }

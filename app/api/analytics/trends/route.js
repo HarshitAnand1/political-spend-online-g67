@@ -11,56 +11,83 @@ export async function GET(request) {
     const filterParty = searchParams.get('party');
     const state = searchParams.get('state');
 
-    // Optimized query: Use ad_regions JOIN for state filtering
-    let queryText;
-    const params = [];
-    let paramCount = 1;
+    // Use daily_spend_by_ad for accurate daily spend trends
+    // First, get the daily spend data
+    let queryText = `
+      SELECT
+        d.ad_id,
+        d.snapshot_date as date,
+        d.daily_spend,
+        d.platform
+      FROM unified.daily_spend_by_ad d
+      WHERE d.snapshot_date >= CURRENT_DATE - INTERVAL '${parseInt(days)} days'
+        AND d.daily_spend > 0
+      ORDER BY d.snapshot_date ASC
+    `;
 
-    if (state && state !== 'All India') {
-      // Use ad_regions table for efficient state filtering
-      queryText = `
-        SELECT DISTINCT
-          DATE(a.ad_delivery_start_time) as date,
-          a.page_id,
-          p.page_name as bylines,
-          a.spend_lower,
-          a.spend_upper,
-          r.spend_percentage
-        FROM unified.all_ads a
-        LEFT JOIN unified.all_pages p ON a.page_id = p.page_id AND a.platform = p.platform
-        LEFT JOIN unified.all_ad_regions r ON CAST(a.id AS TEXT) = r.ad_id AND LOWER(a.platform) = r.platform
-        WHERE a.ad_delivery_start_time >= NOW() - INTERVAL '${parseInt(days)} days'
-          AND a.ad_delivery_start_time IS NOT NULL
-          AND r.region = $${paramCount}
-        ORDER BY date ASC
-      `;
-      params.push(state);
-    } else {
-      // No state filter - query all ads from unified
-      queryText = `
-        SELECT
-          DATE(a.ad_delivery_start_time) as date,
-          a.page_id,
-          p.page_name as bylines,
-          a.spend_lower,
-          a.spend_upper
-        FROM unified.all_ads a
-        LEFT JOIN unified.all_pages p ON a.page_id = p.page_id AND a.platform = p.platform
-        WHERE a.ad_delivery_start_time >= NOW() - INTERVAL '${parseInt(days)} days'
-          AND a.ad_delivery_start_time IS NOT NULL
-        ORDER BY date ASC
-      `;
+    const result = await query(queryText, []);
+
+    // Get advertiser info for classification
+    const adIds = [...new Set(result.rows.map(row => row.ad_id))];
+
+    if (adIds.length === 0) {
+      return NextResponse.json({ lineSeries: { labels: [], BJP: [], INC: [], AAP: [] } });
     }
 
-    const result = await query(queryText, params);
+    // Get advertiser info from all_ads table
+    const adInfoQuery = `
+      SELECT
+        a.id as ad_id,
+        a.page_id,
+        p.page_name as bylines,
+        a.platform
+      FROM unified.all_ads a
+      LEFT JOIN unified.all_pages p ON a.page_id = p.page_id AND a.platform = p.platform
+      WHERE a.id = ANY($1)
+    `;
+    const adInfoResult = await query(adInfoQuery, [adIds]);
+
+    // Create map of ad_id to advertiser info
+    const adInfoMap = {};
+    adInfoResult.rows.forEach(row => {
+      adInfoMap[row.ad_id] = {
+        page_id: row.page_id,
+        bylines: row.bylines,
+        party: classifyParty(row.page_id, row.bylines)
+      };
+    });
+
+    // For state filtering, get ads that target the state
+    let stateFilteredAds = null;
+    if (state && state !== 'All India') {
+      const stateQuery = `
+        SELECT DISTINCT r.ad_id
+        FROM unified.all_ad_regions r
+        WHERE r.region = $1
+      `;
+      const stateResult = await query(stateQuery, [state]);
+      stateFilteredAds = new Set(stateResult.rows.map(row => row.ad_id));
+    }
 
     // Build date-party spend map
     const datePartyMap = {};
     const allDates = new Set();
 
     result.rows.forEach(row => {
-      const adParty = classifyParty(row.page_id, row.bylines);
-      
+      const adInfo = adInfoMap[row.ad_id];
+
+      // Skip if ad info not found
+      if (!adInfo) {
+        return;
+      }
+
+      const adParty = adInfo.party;
+
+      // Apply state filter if specified
+      if (stateFilteredAds && !stateFilteredAds.has(row.ad_id)) {
+        return;
+      }
+
       // Apply party filter if specified
       if (filterParty && filterParty !== 'All Parties' && adParty !== filterParty) {
         return;
@@ -73,14 +100,9 @@ export async function GET(request) {
         datePartyMap[dateStr] = { BJP: 0, INC: 0, AAP: 0, 'Janata Dal (United)': 0, RJD: 0, 'Jan Suraaj': 0, LJP: 0, HAM: 0, VIP: 0, AIMIM: 0, DMK: 0, AITC: 0, NCP: 0, TDP: 0, AIADMK: 0, SP: 0, BSP: 0, 'Shiv Sena': 0, BJD: 0, YSRCP: 0, BRS: 0, 'CPI(M)': 0, 'JD(S)': 0, Others: 0 };
       }
 
-      let avgSpend = ((row.spend_lower || 0) + (row.spend_upper || 0)) / 2;
+      const dailySpend = parseFloat(row.daily_spend) || 0;
 
-      // Apply regional percentage if state filter is active
-      if (state && state !== 'All India' && row.spend_percentage) {
-        avgSpend *= row.spend_percentage;
-      }
-
-      datePartyMap[dateStr][adParty] += avgSpend;
+      datePartyMap[dateStr][adParty] += dailySpend;
     });
 
     // Create sorted labels and series

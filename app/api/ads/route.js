@@ -5,6 +5,14 @@ import { classifyParty, formatSpendRange } from '@/lib/partyUtils';
 
 export const dynamic = 'force-dynamic';
 
+// Indian states for default filtering
+const INDIAN_STATES = [
+  'Uttar Pradesh', 'Maharashtra', 'West Bengal', 'Bihar', 'Tamil Nadu',
+  'Delhi', 'Karnataka', 'Gujarat', 'Rajasthan', 'Kerala',
+  'Madhya Pradesh', 'Telangana', 'Andhra Pradesh', 'Odisha',
+  'Haryana', 'Punjab', 'Jharkhand', 'Assam', 'Chhattisgarh'
+];
+
 export async function GET(request) {
   try {
     const { searchParams } = new URL(request.url);
@@ -62,6 +70,11 @@ export async function GET(request) {
         params.push(stateList);
         paramCount++;
       }
+    } else {
+      // Default: Only show ads targeting Indian states when no filter is applied
+      whereConditions.push(`r.region = ANY($${paramCount}::text[])`);
+      params.push(INDIAN_STATES);
+      paramCount++;
     }
 
     // Add date filters
@@ -119,6 +132,11 @@ export async function GET(request) {
         BJP: '#FF9933',
         INC: '#138808',
         AAP: '#0073e6',
+        DMK: '#E41E26',
+        AITC: '#20C997',
+        NCP: '#00B0F0',
+        TDP: '#FCEE23',
+        AIADMK: '#138808',
         'Janata Dal (United)': '#006400',
         RJD: '#008000',
         'Jan Suraaj': '#FF6347',
@@ -126,6 +144,14 @@ export async function GET(request) {
         HAM: '#92400E',
         VIP: '#0891B2',
         AIMIM: '#14532D',
+        SP: '#FF2222',
+        BSP: '#22409A',
+        'Shiv Sena': '#F37020',
+        BJD: '#76BA1B',
+        YSRCP: '#1569C7',
+        BRS: '#F84996',
+        'CPI(M)': '#D32F2F',
+        'JD(S)': '#138D75',
         Others: '#64748B'
       };
       
@@ -178,13 +204,16 @@ export async function GET(request) {
       };
     }); // Show all ads including 'Others'
 
-    let filteredAds = ads;
+    // Filter out "Others" party ads
+    let filteredAds = ads.filter(ad => ad.party !== 'Others');
+
+    // Apply party filter if specified
     if (filterParty && filterParty !== 'All Parties') {
-      filteredAds = ads.filter(ad => ad.party === filterParty);
+      filteredAds = filteredAds.filter(ad => ad.party === filterParty);
     } else if (parties) {
       const partyList = parties.split(',').filter(p => p.trim());
       if (partyList.length > 0) {
-        filteredAds = ads.filter(ad => partyList.includes(ad.party));
+        filteredAds = filteredAds.filter(ad => partyList.includes(ad.party));
       }
     }
 

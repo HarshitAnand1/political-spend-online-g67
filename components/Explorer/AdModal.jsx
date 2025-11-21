@@ -88,7 +88,7 @@ export default function AdModal({ ad, onClose }) {
             <div className="bg-gradient-to-br from-orange-500 to-orange-600 p-4 rounded-lg text-white">
               <p className="text-xs opacity-80 mb-1">PLATFORM</p>
               <p className="text-lg font-bold">
-                {ad.platforms ? JSON.parse(ad.platforms).join(', ') : 'N/A'}
+                {ad.platforms && Array.isArray(ad.platforms) ? ad.platforms.join(', ') : 'N/A'}
               </p>
             </div>
           </div>
@@ -98,48 +98,10 @@ export default function AdModal({ ad, onClose }) {
             <div>
               <h3 className="text-sm font-semibold text-slate-600 dark:text-slate-400 mb-2">CAMPAIGN PERIOD</h3>
               <p className="text-slate-800 dark:text-white">
-                {ad.startDate ? new Date(ad.startDate).toLocaleDateString() : 'N/A'} - 
+                {ad.startDate ? new Date(ad.startDate).toLocaleDateString() : 'N/A'} -
                 {ad.endDate ? new Date(ad.endDate).toLocaleDateString() : 'Ongoing'}
               </p>
             </div>
-
-            {ad.estimatedAudience && (
-              <div>
-                <h3 className="text-sm font-semibold text-slate-600 dark:text-slate-400 mb-2">ESTIMATED AUDIENCE</h3>
-                <p className="text-slate-800 dark:text-white">{ad.estimatedAudience}</p>
-              </div>
-            )}
-
-            {ad.currency && (
-              <div>
-                <h3 className="text-sm font-semibold text-slate-600 dark:text-slate-400 mb-2">CURRENCY</h3>
-                <p className="text-slate-800 dark:text-white">{ad.currency}</p>
-              </div>
-            )}
-
-            {ad.targetLocations && (
-              <div>
-                <h3 className="text-sm font-semibold text-slate-600 dark:text-slate-400 mb-2">TARGET LOCATIONS</h3>
-                <div className="flex flex-wrap gap-2">
-                  {(() => {
-                    try {
-                      const locs = typeof ad.targetLocations === 'string' 
-                        ? JSON.parse(ad.targetLocations) 
-                        : ad.targetLocations
-                      return Array.isArray(locs) 
-                        ? locs.slice(0, 10).map((loc, idx) => (
-                            <span key={idx} className="px-2 py-1 bg-slate-100 dark:bg-slate-800 rounded text-sm text-slate-700 dark:text-slate-300">
-                              {loc.name}
-                            </span>
-                          ))
-                        : <span className="text-slate-500">N/A</span>
-                    } catch (e) {
-                      return <span className="text-slate-500">N/A</span>
-                    }
-                  })()}
-                </div>
-              </div>
-            )}
           </div>
 
           {/* View Original Button */}
