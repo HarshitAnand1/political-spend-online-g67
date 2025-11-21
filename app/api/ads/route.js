@@ -88,14 +88,20 @@ export async function GET(request) {
       }
     }
 
-    if (startDate) {
-      whereConditions.push(`a.ad_delivery_start_time >= $${paramCount}`);
+    // Handle date filtering with NULL stop times (running ads)
+    if (startDate && endDate) {
+      whereConditions.push(`a.ad_delivery_start_time <= $${paramCount}`);
+      params.push(endDate);
+      paramCount++;
+      whereConditions.push(`(a.ad_delivery_stop_time >= $${paramCount} OR a.ad_delivery_stop_time IS NULL)`);
       params.push(startDate);
       paramCount++;
-    }
-
-    if (endDate) {
-      whereConditions.push(`a.ad_delivery_stop_time <= $${paramCount}`);
+    } else if (startDate) {
+      whereConditions.push(`(a.ad_delivery_stop_time >= $${paramCount} OR a.ad_delivery_stop_time IS NULL)`);
+      params.push(startDate);
+      paramCount++;
+    } else if (endDate) {
+      whereConditions.push(`a.ad_delivery_start_time <= $${paramCount}`);
       params.push(endDate);
       paramCount++;
     }
@@ -217,7 +223,11 @@ export async function GET(request) {
       }
     }
 
-    return NextResponse.json({ ads: filteredAds, total: filteredAds.length, offset, limit });
+    return NextResponse.json({ ads: filteredAds, total: filteredAds.length, offset, limit }, {
+      headers: {
+        'Cache-Control': 'public, s-maxage=30, stale-while-revalidate=60'
+      }
+    });
 
   } catch (error) {
     console.error('Error fetching ads:', error);

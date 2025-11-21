@@ -51,14 +51,20 @@ export async function GET(request) {
       `;
     }
 
-    if (startDate) {
-      queryText += ` AND a.ad_delivery_start_time >= $${paramCount}`;
+    // Handle date filtering with NULL stop times (running ads)
+    if (startDate && endDate) {
+      queryText += ` AND a.ad_delivery_start_time <= $${paramCount}`;
+      params.push(endDate);
+      paramCount++;
+      queryText += ` AND (a.ad_delivery_stop_time >= $${paramCount} OR a.ad_delivery_stop_time IS NULL)`;
       params.push(startDate);
       paramCount++;
-    }
-
-    if (endDate) {
-      queryText += ` AND a.ad_delivery_stop_time <= $${paramCount}`;
+    } else if (startDate) {
+      queryText += ` AND (a.ad_delivery_stop_time >= $${paramCount} OR a.ad_delivery_stop_time IS NULL)`;
+      params.push(startDate);
+      paramCount++;
+    } else if (endDate) {
+      queryText += ` AND a.ad_delivery_start_time <= $${paramCount}`;
       params.push(endDate);
       paramCount++;
     }
@@ -103,7 +109,11 @@ export async function GET(request) {
       });
     }
 
-    return NextResponse.json({ spendData });
+    return NextResponse.json({ spendData }, {
+      headers: {
+        'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=300'
+      }
+    });
 
   } catch (error) {
     console.error('Error fetching spend analytics:', error);

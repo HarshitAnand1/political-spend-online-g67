@@ -26,93 +26,118 @@ export async function GET(request) {
     const endDate = searchParams.get('endDate');
     const party = searchParams.get('party');
 
-    // Query to get regional data from unified with ad_regions table
-    let queryText = `
+    // First query: Get aggregated regional data (OPTIMIZED)
+    let aggregateQuery = `
       SELECT
         r.region,
-        a.page_id,
-        p.page_name as bylines,
-        a.spend_lower,
-        a.spend_upper,
-        a.impressions_lower,
-        a.impressions_upper,
-        r.spend_percentage
+        COUNT(DISTINCT a.id) as ad_count,
+        SUM(((a.spend_lower + a.spend_upper) / 2) * COALESCE(r.spend_percentage, 1)) as total_spend,
+        SUM(((a.impressions_lower + a.impressions_upper) / 2) * COALESCE(r.spend_percentage, 1)) as total_impressions
       FROM unified.all_ad_regions r
       JOIN unified.all_ads a ON r.ad_id = CAST(a.id AS TEXT) AND r.platform = LOWER(a.platform)
-      LEFT JOIN unified.all_pages p ON a.page_id = p.page_id AND a.platform = p.platform
-      WHERE 1=1
+      WHERE r.region IS NOT NULL
     `;
 
     const params = [];
     let paramCount = 1;
 
-    if (startDate) {
-      queryText += ` AND a.ad_delivery_start_time >= $${paramCount}`;
+    // Handle date filtering with NULL stop times (running ads)
+    if (startDate && endDate) {
+      aggregateQuery += ` AND a.ad_delivery_start_time <= $${paramCount}`;
+      params.push(endDate);
+      paramCount++;
+      aggregateQuery += ` AND (a.ad_delivery_stop_time >= $${paramCount} OR a.ad_delivery_stop_time IS NULL)`;
       params.push(startDate);
       paramCount++;
-    }
-
-    if (endDate) {
-      queryText += ` AND a.ad_delivery_stop_time <= $${paramCount}`;
+    } else if (startDate) {
+      aggregateQuery += ` AND (a.ad_delivery_stop_time >= $${paramCount} OR a.ad_delivery_stop_time IS NULL)`;
+      params.push(startDate);
+      paramCount++;
+    } else if (endDate) {
+      aggregateQuery += ` AND a.ad_delivery_start_time <= $${paramCount}`;
       params.push(endDate);
       paramCount++;
     }
 
-    const result = await query(queryText, params);
+    aggregateQuery += `
+      GROUP BY r.region
+      ORDER BY total_spend DESC
+      LIMIT 50
+    `;
 
-    // Aggregate by region
+    const aggregateResult = await query(aggregateQuery, params);
+
+    // Build region map with aggregated data
     const regionMap = {};
     let totalAds = 0;
-    const seenAds = new Set();
 
-    result.rows.forEach(row => {
-      const adParty = classifyParty(row.page_id, row.bylines);
-
-      // Filter by party if specified
-      if (party && party !== 'All Parties' && adParty !== party) {
-        return;
-      }
-
+    aggregateResult.rows.forEach(row => {
       const regionName = row.region || 'Unknown';
 
       // Filter out non-Indian states/UTs
-      // Check if the region name (after normalization) is a valid Indian state/UT
       const normalizedRegion = normalizeStateName(regionName);
       if (!normalizedRegion || !INDIAN_STATES[normalizedRegion]) {
-        // Skip this entry if it's not a valid Indian state/UT
         return;
       }
 
-      if (!regionMap[regionName]) {
-        regionMap[regionName] = {
-          totalSpend: 0,
-          totalImpressions: 0,
-          adCount: 0,
-          parties: {}  // Dynamic party tracking
-        };
-      }
+      regionMap[regionName] = {
+        totalSpend: parseFloat(row.total_spend || 0),
+        totalImpressions: parseFloat(row.total_impressions || 0),
+        adCount: parseInt(row.ad_count || 0),
+        parties: {}
+      };
 
-      // Calculate spend and impressions based on percentages
-      const avgSpend = ((row.spend_lower || 0) + (row.spend_upper || 0)) / 2;
-      const avgImpressions = ((row.impressions_lower || 0) + (row.impressions_upper || 0)) / 2;
-
-      const regionalSpend = avgSpend * (row.spend_percentage || 1);
-      const regionalImpressions = avgImpressions * (row.spend_percentage || 1);
-
-      regionMap[regionName].totalSpend += regionalSpend;
-      regionMap[regionName].totalImpressions += regionalImpressions;
-      regionMap[regionName].adCount++;
-
-      // Track party spend dynamically
-      if (!regionMap[regionName].parties[adParty]) {
-        regionMap[regionName].parties[adParty] = 0;
-      }
-      regionMap[regionName].parties[adParty] += regionalSpend;
-
-      seenAds.add(`${row.page_id}`);
+      totalAds += parseInt(row.ad_count || 0);
     });
 
-    totalAds = seenAds.size;
+    // Second query: Get party breakdown for these regions
+    if (Object.keys(regionMap).length > 0) {
+      const regionNames = Object.keys(regionMap);
+      const partyQueryText = `
+        SELECT
+          r.region,
+          a.page_id,
+          p.page_name as bylines,
+          SUM(((a.spend_lower + a.spend_upper) / 2) * COALESCE(r.spend_percentage, 1)) as total_spend
+        FROM unified.all_ad_regions r
+        JOIN unified.all_ads a ON r.ad_id = CAST(a.id AS TEXT) AND r.platform = LOWER(a.platform)
+        LEFT JOIN unified.all_pages p ON a.page_id = p.page_id AND a.platform = p.platform
+        WHERE r.region = ANY($${paramCount}::text[])
+        ${startDate && endDate ? `AND a.ad_delivery_start_time <= $${paramCount + 1} AND (a.ad_delivery_stop_time >= $${paramCount + 2} OR a.ad_delivery_stop_time IS NULL)` : ''}
+        ${startDate && !endDate ? `AND (a.ad_delivery_stop_time >= $${paramCount + 1} OR a.ad_delivery_stop_time IS NULL)` : ''}
+        ${endDate && !startDate ? `AND a.ad_delivery_start_time <= $${paramCount + 1}` : ''}
+        GROUP BY r.region, a.page_id, p.page_name
+      `;
+
+      const partyParams = [regionNames];
+      if (startDate && endDate) {
+        partyParams.push(endDate, startDate);
+      } else if (startDate) {
+        partyParams.push(startDate);
+      } else if (endDate) {
+        partyParams.push(endDate);
+      }
+
+      const partyResult = await query(partyQueryText, partyParams);
+
+      partyResult.rows.forEach(row => {
+        const regionName = row.region;
+        if (regionMap[regionName]) {
+          const adParty = classifyParty(row.page_id, row.bylines);
+
+          // Filter by party if specified
+          if (party && party !== 'All Parties' && adParty !== party) {
+            return;
+          }
+
+          const spend = parseFloat(row.total_spend || 0);
+          if (!regionMap[regionName].parties[adParty]) {
+            regionMap[regionName].parties[adParty] = 0;
+          }
+          regionMap[regionName].parties[adParty] += spend;
+        }
+      });
+    }
 
     // Convert to array and format
     const regions = Object.entries(regionMap).map(([name, data]) => {
@@ -153,12 +178,19 @@ export async function GET(request) {
     });
 
     // Determine national campaigns (ads targeting multiple regions)
-    const adsPerRegionCount = {};
-    result.rows.forEach(row => {
-      const adId = `${row.page_id}`;
-      adsPerRegionCount[adId] = (adsPerRegionCount[adId] || 0) + 1;
-    });
-    const nationalCampaigns = Object.values(adsPerRegionCount).filter(count => count >= 3).length;
+    // Query to find ads that target 3 or more regions
+    const nationalCampaignsQuery = `
+      SELECT COUNT(DISTINCT a.id) as national_count
+      FROM unified.all_ads a
+      WHERE a.id IN (
+        SELECT r.ad_id
+        FROM unified.all_ad_regions r
+        GROUP BY r.ad_id
+        HAVING COUNT(DISTINCT r.region) >= 3
+      )
+    `;
+    const nationalResult = await query(nationalCampaignsQuery);
+    const nationalCampaigns = parseInt(nationalResult.rows[0]?.national_count || 0);
 
     return NextResponse.json({
       regions,

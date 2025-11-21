@@ -33,8 +33,8 @@ export default function Dashboard() {
       params.append('startDate', format(filters.dateRange[0], 'yyyy-MM-dd'))
       params.append('endDate', format(filters.dateRange[1], 'yyyy-MM-dd'))
     }
-    
-    // Fetch all dashboard APIs with filters
+
+    // Fetch all dashboard APIs separately for reliability
     Promise.all([
       fetch(`/api/stats?${params}`).then(r => r.json()),
       fetch(`/api/analytics/spend?${params}`).then(r => r.json()),
@@ -166,7 +166,7 @@ export default function Dashboard() {
     const totalSum = Object.values(totals).reduce((a, b) => a + b, 0) || 1
 
     return Object.entries(totals)
-      .filter(([, value]) => value > 0) // Only show parties with spending
+      .filter(([partyCode, value]) => value > 0 && partyCode !== 'Others') // Only show parties with spending, exclude Others
       .sort((a, b) => b[1] - a[1])
       .map(([partyCode, value]) => {
         const color = getPartyColor(partyCode)
