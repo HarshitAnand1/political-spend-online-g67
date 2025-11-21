@@ -1,4 +1,7 @@
 "use client"
+
+export const dynamic = "force-dynamic";
+
 import { useMemo } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { AnimatePresence, motion } from 'framer-motion'
