@@ -208,14 +208,35 @@ export function SpendLineChart({ labels, series }) {
     plugins: {
       legend: {
         position: 'top',
-        align: 'end',
-        labels: { boxWidth: 12, font: { size: 10 } },
+        align: 'start',
+        labels: {
+          boxWidth: 10,
+          font: { size: 9 },
+          padding: 8,
+          usePointStyle: true,
+        },
       },
     },
     scales: {
       y: {
         beginAtZero: true,
-        ticks: { callback: (v) => `₹${v} Cr` },
+        ticks: {
+          callback: (v) => `₹${v} Cr`,
+          font: { size: 11 },
+        },
+        grid: {
+          color: 'rgba(0, 0, 0, 0.05)',
+        },
+      },
+      x: {
+        ticks: {
+          font: { size: 10 },
+          maxRotation: 45,
+          minRotation: 0,
+        },
+        grid: {
+          display: false,
+        },
       },
     },
   }
