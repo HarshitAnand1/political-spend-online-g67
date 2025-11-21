@@ -59,7 +59,7 @@ export async function GET(request) {
       ORDER BY total_spend DESC
       LIMIT $${paramCount}
     `;
-    params.push(limit);
+    params.push(limit * 5); // Fetch more to account for filtering out non-political and "Others"
 
     const result = await query(queryText, params);
 
@@ -145,7 +145,7 @@ async function getTopAdvertisersFromDailySpend(startDate, endDate, state, party,
       ORDER BY total_spend DESC
       LIMIT $${paramCount}
     `;
-    params.push(limit * 3); // Get more to account for filtering
+    params.push(limit * 5); // Get more to account for filtering out non-political and "Others"
 
     const result = await query(queryText, params);
 
