@@ -8,10 +8,10 @@ const PARTIES = [
 ]
 
 const STATES = [
-  'Uttar Pradesh', 'Maharashtra', 'West Bengal', 'Bihar India', 'Tamil Nadu India',
-  'Delhi India', 'Karnataka India', 'Gujarat India', 'Rajasthan India', 'Kerala India',
-  'Madhya Pradesh India', 'Telangana India', 'Andhra Pradesh India', 'Odisha India',
-  'Haryana India', 'Punjab India', 'Jharkhand India', 'Assam India', 'Chhattisgarh India'
+  'Uttar Pradesh', 'Maharashtra', 'West Bengal', 'Bihar', 'Tamil Nadu',
+  'Delhi', 'Karnataka', 'Gujarat', 'Rajasthan', 'Kerala',
+  'Madhya Pradesh', 'Telangana', 'Andhra Pradesh', 'Odisha',
+  'Haryana', 'Punjab', 'Jharkhand', 'Assam', 'Chhattisgarh'
 ]
 
 export default function FilterPanel({ filters, setFilters }) {
@@ -25,9 +25,9 @@ export default function FilterPanel({ filters, setFilters }) {
     <aside className="lg:col-span-1 bg-white p-4 rounded-lg border border-slate-200 self-start dark:bg-slate-900 dark:border-slate-700">
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-lg font-semibold text-slate-800 dark:text-white">Refine Results</h3>
-        {(filters.datePreset || filters.parties.length > 0 || filters.states.length > 0) && (
+        {(filters.parties.length > 0 || filters.states.length > 0) && (
           <button
-            onClick={() => setFilters({ datePreset: '', parties: [], states: [] })}
+            onClick={() => setFilters({ parties: [], states: [] })}
             className="text-xs text-blue-600 dark:text-blue-400 hover:underline"
           >
             Clear All
@@ -35,24 +35,6 @@ export default function FilterPanel({ filters, setFilters }) {
         )}
       </div>
       <div className="space-y-5">
-        <div>
-          <h4 className="font-semibold text-sm mb-2 text-slate-700 dark:text-slate-300">Date Range</h4>
-          <div className="space-y-1">
-            {['Last 24 hours', 'Last 7 days', 'Last 30 days'].map((label) => (
-              <label className="flex items-center text-sm text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 cursor-pointer" key={label}>
-                <input
-                  type="radio"
-                  name="date"
-                  className="mr-2 text-blue-600 focus:ring-blue-500"
-                  checked={filters.datePreset === label}
-                  onChange={() => setFilters((f) => ({ ...f, datePreset: label }))}
-                />
-                {label}
-              </label>
-            ))}
-          </div>
-        </div>
-
         <div>
           <h4 className="font-semibold text-sm mb-2 text-slate-700 dark:text-slate-300">Political Party</h4>
           <div className="space-y-1 max-h-64 overflow-y-auto">
@@ -103,7 +85,7 @@ export default function FilterPanel({ filters, setFilters }) {
                     })
                   }}
                 />
-                {s.replace(' India', '')}
+                {s}
               </label>
             ))}
             <button
