@@ -114,14 +114,16 @@ export async function GET(request) {
 
     // Convert to array and format
     const regions = Object.entries(regionMap).map(([name, data]) => {
-      // Sort parties by spend and get top 5
+      // Sort all parties by spend, then filter out "Others" and get top 5
+      // We take more than 5 initially to ensure we have 5 after filtering
       const sortedParties = Object.entries(data.parties)
         .sort((a, b) => b[1] - a[1])
+        .filter(([party]) => party !== 'Others')
         .slice(0, 5);
 
       const dominantParty = sortedParties.length > 0 ? sortedParties[0][0] : 'Others';
 
-      // Create partyBreakdown with top 5 parties
+      // Create partyBreakdown with top 5 parties (excluding Others)
       const partyBreakdown = {};
       sortedParties.forEach(([party, spend]) => {
         partyBreakdown[party] = formatCurrency(spend);

@@ -58,12 +58,10 @@ export default function RegionalAnalytics({ data = [] }) {
                 <div className="flex-1">
                   <div className="flex items-center gap-2">
                     <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">
-                      {region.region} India
+                      {region.region.replace(' India', '')}
                     </span>
                   </div>
                   <div className="flex items-center gap-3 mt-1 text-xs text-slate-500 dark:text-slate-400">
-                    <span>{region.stateCount} states</span>
-                    <span>•</span>
                     <span>{region.adCount} ads</span>
                     <span>•</span>
                     <span>{(region.impressions / 1000000).toFixed(1)}M impressions</span>
@@ -92,46 +90,33 @@ export default function RegionalAnalytics({ data = [] }) {
             </div>
             
             {/* Party breakdown mini-bars - Top 5 parties */}
-            <div className="grid grid-cols-5 gap-2 mt-2">
-              {Object.entries(region.partyBreakdown).map(([party, spend]) => (
-                <div key={party} className="text-center">
-                  <div className="text-xs font-medium text-slate-600 dark:text-slate-400 mb-1 truncate" title={party}>
-                    {party}
-                  </div>
-                  <div
-                    className="h-2 rounded-full"
-                    style={{ backgroundColor: partyColors[party] || '#64748B' }}
-                  />
-                  <div className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                    {spend}
-                  </div>
-                </div>
-              ))}
-            </div>
-            
-            {/* Expand to show states */}
-            {region.states && region.states.length > 0 && (
-              <details className="mt-2">
-                <summary className="text-xs text-slate-600 dark:text-slate-400 cursor-pointer hover:text-slate-800 dark:hover:text-slate-200">
-                  View states ({region.stateCount})
-                </summary>
-                <div className="mt-2 flex flex-wrap gap-1">
-                  {region.states.slice(0, 10).map((state, idx) => (
-                    <span 
-                      key={idx}
-                      className="inline-block px-2 py-1 bg-slate-100 dark:bg-slate-800 rounded text-xs text-slate-700 dark:text-slate-300"
-                    >
-                      {state}
-                    </span>
+            {(() => {
+              const parties = Object.entries(region.partyBreakdown);
+              const partyCount = parties.length;
+              const gridClass = partyCount === 5 ? 'grid-cols-5' :
+                               partyCount === 4 ? 'grid-cols-4' :
+                               partyCount === 3 ? 'grid-cols-3' :
+                               partyCount === 2 ? 'grid-cols-2' : 'grid-cols-1';
+
+              return (
+                <div className={`grid ${gridClass} gap-2 mt-2`}>
+                  {parties.map(([party, spend]) => (
+                    <div key={party} className="text-center">
+                      <div className="text-xs font-medium text-slate-600 dark:text-slate-400 mb-1 truncate" title={party}>
+                        {party}
+                      </div>
+                      <div
+                        className="h-2 rounded-full"
+                        style={{ backgroundColor: partyColors[party] || '#64748B' }}
+                      />
+                      <div className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                        {spend}
+                      </div>
+                    </div>
                   ))}
-                  {region.states.length > 10 && (
-                    <span className="inline-block px-2 py-1 text-xs text-slate-500">
-                      +{region.states.length - 10} more
-                    </span>
-                  )}
                 </div>
-              </details>
-            )}
+              );
+            })()}
           </div>
         ))}
       </div>
