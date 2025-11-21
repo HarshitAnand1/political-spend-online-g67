@@ -7,10 +7,20 @@ export const dynamic = 'force-dynamic';
 export async function GET(request) {
   try {
     const { searchParams } = new URL(request.url);
-    const startDate = searchParams.get('startDate');
-    const endDate = searchParams.get('endDate');
+    let startDate = searchParams.get('startDate');
+    let endDate = searchParams.get('endDate');
     const state = searchParams.get('state');
     const party = searchParams.get('party');
+
+    // Default to last 30 days if no date range specified (prevents full table scan)
+    if (!startDate && !endDate) {
+      const today = new Date();
+      const thirtyDaysAgo = new Date(today);
+      thirtyDaysAgo.setDate(today.getDate() - 30);
+      
+      startDate = thirtyDaysAgo.toISOString().split('T')[0];
+      endDate = today.toISOString().split('T')[0];
+    }
 
     // Run all queries in parallel for maximum performance
     const [statsResult, topAdvertisersResult, geoResult] = await Promise.all([
