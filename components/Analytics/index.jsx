@@ -27,12 +27,20 @@ export default function Analytics() {
 
     // Fetch regional analytics
     fetch(`/api/analytics/regions?${params}`)
-      .then(r => r.json())
+      .then(r => {
+        if (!r.ok) {
+          throw new Error(`HTTP error! status: ${r.status}`)
+        }
+        return r.json()
+      })
       .then((regionalResponse) => {
+        console.log('Regional analytics response:', regionalResponse)
+        console.log('Number of regions:', regionalResponse.regions?.length || 0)
         setRegionalData(regionalResponse.regions || [])
       })
       .catch(error => {
         console.error('Error fetching analytics data:', error)
+        setRegionalData([]) // Ensure empty array on error
       })
       .finally(() => setLoading(false))
   }

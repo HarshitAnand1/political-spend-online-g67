@@ -65,6 +65,11 @@ export default function TopAdvertisers({ data = [] }) {
                   <span className="text-xs text-slate-500 dark:text-slate-400">
                     {advertiser.ad_count} ads
                   </span>
+                  {advertiser.isUnofficial && (
+                    <span className="inline-block px-2 py-0.5 rounded text-xs font-semibold bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200">
+                      Unofficial
+                    </span>
+                  )}
                 </div>
               </div>
             </div>

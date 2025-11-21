@@ -7,22 +7,16 @@ export const dynamic = 'force-dynamic';
 export async function GET(request) {
   try {
     const { searchParams } = new URL(request.url);
-    let startDate = searchParams.get('startDate');
-    let endDate = searchParams.get('endDate');
+    const startDate = searchParams.get('startDate');
+    const endDate = searchParams.get('endDate');
     const state = searchParams.get('state');
     const party = searchParams.get('party');
 
-    // Default to last 30 days if no date range specified (prevents full table scan)
-    if (!startDate && !endDate) {
-      const today = new Date();
-      const thirtyDaysAgo = new Date(today);
-      thirtyDaysAgo.setDate(today.getDate() - 30);
-      
-      startDate = thirtyDaysAgo.toISOString().split('T')[0];
-      endDate = today.toISOString().split('T')[0];
-      console.log(`✅ Dashboard API: Using default 30-day range: ${startDate} to ${endDate}`);
+    // Log the date range being used
+    if (startDate || endDate) {
+      console.log(`✅ Dashboard API: Using date range: ${startDate || 'none'} to ${endDate || 'none'}`);
     } else {
-      console.log(`✅ Dashboard API: Using provided date range: ${startDate || 'none'} to ${endDate || 'none'}`);
+      console.log(`✅ Dashboard API: Using all-time data (no date filter)`);
     }
 
     // Run all queries in parallel for maximum performance
@@ -94,16 +88,16 @@ async function getStats(startDate, endDate, state, party) {
     `;
   }
 
-  // Filter for ads active during the date range (started before end date, ended after start date)
+  // Filter for ads active during the date range (handle NULL stop times for running ads)
   if (startDate && endDate) {
     queryText += ` AND a.ad_delivery_start_time <= $${paramCount}`;
     params.push(endDate);
     paramCount++;
-    queryText += ` AND a.ad_delivery_stop_time >= $${paramCount}`;
+    queryText += ` AND (a.ad_delivery_stop_time >= $${paramCount} OR a.ad_delivery_stop_time IS NULL)`;
     params.push(startDate);
     paramCount++;
   } else if (startDate) {
-    queryText += ` AND a.ad_delivery_stop_time >= $${paramCount}`;
+    queryText += ` AND (a.ad_delivery_stop_time >= $${paramCount} OR a.ad_delivery_stop_time IS NULL)`;
     params.push(startDate);
     paramCount++;
   } else if (endDate) {
@@ -203,16 +197,16 @@ async function getTopAdvertisers(startDate, endDate, state, party, limit) {
     `;
   }
 
-  // Filter for ads active during the date range
+  // Filter for ads active during the date range (handle NULL stop times for running ads)
   if (startDate && endDate) {
     queryText += ` AND a.ad_delivery_start_time <= $${paramCount}`;
     params.push(endDate);
     paramCount++;
-    queryText += ` AND a.ad_delivery_stop_time >= $${paramCount}`;
+    queryText += ` AND (a.ad_delivery_stop_time >= $${paramCount} OR a.ad_delivery_stop_time IS NULL)`;
     params.push(startDate);
     paramCount++;
   } else if (startDate) {
-    queryText += ` AND a.ad_delivery_stop_time >= $${paramCount}`;
+    queryText += ` AND (a.ad_delivery_stop_time >= $${paramCount} OR a.ad_delivery_stop_time IS NULL)`;
     params.push(startDate);
     paramCount++;
   } else if (endDate) {
@@ -231,20 +225,38 @@ async function getTopAdvertisers(startDate, endDate, state, party, limit) {
 
   const result = await query(queryText, params);
 
-  const advertisers = result.rows
+  // Filter out "Others" and calculate percentages
+  let advertisers = result.rows
     .map(row => {
       const adParty = classifyParty(row.page_id, row.bylines);
       const spend = parseFloat(row.total_spend || 0);
+      const isUnofficial = isThirdPartyAdvertiser(row.bylines);
+
       return {
         page_id: row.page_id,
         name: row.bylines || `Page ${row.page_id}`,
         party: adParty,
         ad_count: parseInt(row.ad_count),
-        spendRaw: spend
+        spendRaw: spend,
+        isUnofficial: isUnofficial,
+        unofficialSpend: isUnofficial ? spend : 0
       };
     })
-    .filter(ad => party && party !== 'All Parties' ? ad.party === party : true)
-    .slice(0, limit);
+    .filter(ad => ad.party !== 'Others') // Exclude "Others"
+    .filter(ad => party && party !== 'All Parties' ? ad.party === party : true);
+
+  // Calculate total spend for percentages
+  const totalSpend = advertisers.reduce((sum, ad) => sum + ad.spendRaw, 0);
+
+  // Format and add percentages, limit to top 10
+  advertisers = advertisers
+    .slice(0, 10)
+    .map(ad => ({
+      ...ad,
+      spend: `₹${(ad.spendRaw / 100000).toFixed(2)} L`,
+      percentage: totalSpend > 0 ? ((ad.spendRaw / totalSpend) * 100).toFixed(1) : '0',
+      unofficialSpendFormatted: ad.isUnofficial ? `₹${(ad.unofficialSpend / 100000).toFixed(2)} L` : null
+    }));
 
   return { advertisers };
 }
@@ -272,16 +284,16 @@ async function getGeography(startDate, endDate, party, limit) {
   const params = [validStates];
   let paramCount = 2;
 
-  // Filter for ads active during the date range
+  // Filter for ads active during the date range (handle NULL stop times for running ads)
   if (startDate && endDate) {
     queryText += ` AND a.ad_delivery_start_time <= $${paramCount}`;
     params.push(endDate);
     paramCount++;
-    queryText += ` AND a.ad_delivery_stop_time >= $${paramCount}`;
+    queryText += ` AND (a.ad_delivery_stop_time >= $${paramCount} OR a.ad_delivery_stop_time IS NULL)`;
     params.push(startDate);
     paramCount++;
   } else if (startDate) {
-    queryText += ` AND a.ad_delivery_stop_time >= $${paramCount}`;
+    queryText += ` AND (a.ad_delivery_stop_time >= $${paramCount} OR a.ad_delivery_stop_time IS NULL)`;
     params.push(startDate);
     paramCount++;
   } else if (endDate) {
@@ -303,15 +315,39 @@ async function getGeography(startDate, endDate, party, limit) {
     const regionalSpend = avgSpend * (row.spend_percentage || 1);
 
     if (!stateMap[stateName]) {
-      stateMap[stateName] = { state: stateName, totalSpend: 0, adCount: 0 };
+      stateMap[stateName] = {
+        state: stateName,
+        totalSpend: 0,
+        adCount: 0,
+        partySpend: {}
+      };
     }
 
     stateMap[stateName].totalSpend += regionalSpend;
     stateMap[stateName].adCount++;
+
+    // Track spend by party for dominant party calculation
+    if (!stateMap[stateName].partySpend[adParty]) {
+      stateMap[stateName].partySpend[adParty] = 0;
+    }
+    stateMap[stateName].partySpend[adParty] += regionalSpend;
   });
 
   const states = Object.values(stateMap)
-    .sort((a, b) => b.totalSpend - a.totalSpend)
+    .map(state => {
+      // Find dominant party
+      const dominantParty = Object.entries(state.partySpend)
+        .sort((a, b) => b[1] - a[1])[0]?.[0] || 'Others';
+
+      return {
+        state: state.state,
+        adCount: state.adCount,
+        spend: `₹${(state.totalSpend / 100000).toFixed(2)} L`,
+        spendRaw: state.totalSpend,
+        dominantParty
+      };
+    })
+    .sort((a, b) => b.spendRaw - a.spendRaw)
     .slice(0, limit);
 
   return { states };
@@ -374,7 +410,12 @@ async function getTrends(days, filterParty, state) {
     allDates.add(dateStr);
 
     if (!datePartyMap[dateStr]) {
-      datePartyMap[dateStr] = { BJP: 0, INC: 0, AAP: 0, 'Janata Dal (United)': 0, RJD: 0, Others: 0 };
+      datePartyMap[dateStr] = {
+        BJP: 0, INC: 0, AAP: 0, 'Janata Dal (United)': 0, RJD: 0, 'Jan Suraaj': 0,
+        LJP: 0, HAM: 0, VIP: 0, AIMIM: 0, DMK: 0, AITC: 0, NCP: 0, TDP: 0, AIADMK: 0,
+        SP: 0, BSP: 0, 'Shiv Sena': 0, BJD: 0, YSRCP: 0, BRS: 0, 'CPI(M)': 0, 'JD(S)': 0,
+        Others: 0
+      };
     }
 
     datePartyMap[dateStr][adParty] += parseFloat(row.daily_spend) || 0;
@@ -391,6 +432,24 @@ async function getTrends(days, filterParty, state) {
     AAP: sortedDates.map(date => parseFloat((datePartyMap[date]?.AAP || 0) / 100000).toFixed(2)),
     'Janata Dal (United)': sortedDates.map(date => parseFloat((datePartyMap[date]?.['Janata Dal (United)'] || 0) / 100000).toFixed(2)),
     RJD: sortedDates.map(date => parseFloat((datePartyMap[date]?.RJD || 0) / 100000).toFixed(2)),
+    'Jan Suraaj': sortedDates.map(date => parseFloat((datePartyMap[date]?.['Jan Suraaj'] || 0) / 100000).toFixed(2)),
+    LJP: sortedDates.map(date => parseFloat((datePartyMap[date]?.LJP || 0) / 100000).toFixed(2)),
+    HAM: sortedDates.map(date => parseFloat((datePartyMap[date]?.HAM || 0) / 100000).toFixed(2)),
+    VIP: sortedDates.map(date => parseFloat((datePartyMap[date]?.VIP || 0) / 100000).toFixed(2)),
+    AIMIM: sortedDates.map(date => parseFloat((datePartyMap[date]?.AIMIM || 0) / 100000).toFixed(2)),
+    DMK: sortedDates.map(date => parseFloat((datePartyMap[date]?.DMK || 0) / 100000).toFixed(2)),
+    AITC: sortedDates.map(date => parseFloat((datePartyMap[date]?.AITC || 0) / 100000).toFixed(2)),
+    NCP: sortedDates.map(date => parseFloat((datePartyMap[date]?.NCP || 0) / 100000).toFixed(2)),
+    TDP: sortedDates.map(date => parseFloat((datePartyMap[date]?.TDP || 0) / 100000).toFixed(2)),
+    AIADMK: sortedDates.map(date => parseFloat((datePartyMap[date]?.AIADMK || 0) / 100000).toFixed(2)),
+    SP: sortedDates.map(date => parseFloat((datePartyMap[date]?.SP || 0) / 100000).toFixed(2)),
+    BSP: sortedDates.map(date => parseFloat((datePartyMap[date]?.BSP || 0) / 100000).toFixed(2)),
+    'Shiv Sena': sortedDates.map(date => parseFloat((datePartyMap[date]?.['Shiv Sena'] || 0) / 100000).toFixed(2)),
+    BJD: sortedDates.map(date => parseFloat((datePartyMap[date]?.BJD || 0) / 100000).toFixed(2)),
+    YSRCP: sortedDates.map(date => parseFloat((datePartyMap[date]?.YSRCP || 0) / 100000).toFixed(2)),
+    BRS: sortedDates.map(date => parseFloat((datePartyMap[date]?.BRS || 0) / 100000).toFixed(2)),
+    'CPI(M)': sortedDates.map(date => parseFloat((datePartyMap[date]?.['CPI(M)'] || 0) / 100000).toFixed(2)),
+    'JD(S)': sortedDates.map(date => parseFloat((datePartyMap[date]?.['JD(S)'] || 0) / 100000).toFixed(2)),
     Others: sortedDates.map(date => parseFloat((datePartyMap[date]?.Others || 0) / 100000).toFixed(2))
   };
 
