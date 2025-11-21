@@ -23,6 +23,19 @@ export default function TopAdvertisers({ data = [] }) {
     HAM: 'bg-amber-800',
     VIP: 'bg-cyan-600',
     AIMIM: 'bg-green-900',
+    DMK: 'bg-red-600',
+    AITC: 'bg-teal-500',
+    NCP: 'bg-blue-600',
+    TDP: 'bg-amber-400',
+    AIADMK: 'bg-emerald-600',
+    SP: 'bg-rose-600',
+    BSP: 'bg-blue-500',
+    'Shiv Sena': 'bg-orange-500',
+    BJD: 'bg-emerald-500',
+    YSRCP: 'bg-violet-600',
+    BRS: 'bg-pink-500',
+    'CPI(M)': 'bg-red-700',
+    'JD(S)': 'bg-lime-600',
     Others: 'bg-slate-500'
   }
 

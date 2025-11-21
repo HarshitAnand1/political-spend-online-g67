@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { query } from '@/lib/db';
-import { classifyParty, formatCurrency } from '@/lib/partyUtils';
+import { classifyParty, formatCurrency, isNonPoliticalAdvertiser } from '@/lib/partyUtils';
 
 export async function GET(request) {
   try {
@@ -71,22 +71,24 @@ export async function GET(request) {
     // Calculate total spend for percentage
     const totalSpend = result.rows.reduce((sum, row) => sum + parseFloat(row.total_spend || 0), 0);
 
-    // Map and classify advertisers
-    let advertisers = result.rows.map(row => {
-      const adParty = classifyParty(row.page_id, row.bylines);
-      const spend = parseFloat(row.total_spend || 0);
+    // Map and classify advertisers, filtering out non-political advertisers
+    let advertisers = result.rows
+      .filter(row => !isNonPoliticalAdvertiser(row.bylines)) // Exclude non-political advertisers
+      .map(row => {
+        const adParty = classifyParty(row.page_id, row.bylines);
+        const spend = parseFloat(row.total_spend || 0);
 
-      return {
-        page_id: row.page_id,
-        name: row.bylines || `Page ${row.page_id}`,
-        party: adParty,
-        ad_count: parseInt(row.ad_count),
-        spend: formatCurrency(spend),
-        spendRaw: spend,
-        impressions: parseInt(row.total_impressions || 0),
-        percentage: totalSpend > 0 ? ((spend / totalSpend) * 100).toFixed(1) : '0'
-      };
-    });
+        return {
+          page_id: row.page_id,
+          name: row.bylines || `Page ${row.page_id}`,
+          party: adParty,
+          ad_count: parseInt(row.ad_count),
+          spend: formatCurrency(spend),
+          spendRaw: spend,
+          impressions: parseInt(row.total_impressions || 0),
+          percentage: totalSpend > 0 ? ((spend / totalSpend) * 100).toFixed(1) : '0'
+        };
+      });
 
     // Filter by party if specified
     if (party && party !== 'All Parties') {

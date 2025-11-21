@@ -128,6 +128,70 @@ export function SpendLineChart({ labels, series }) {
         fill: true,
         tension: 0.3,
       },
+      series.SP && {
+        label: 'SP',
+        data: series.SP,
+        borderColor: '#E11D48',
+        backgroundColor: '#E11D4833',
+        fill: true,
+        tension: 0.3,
+      },
+      series.BSP && {
+        label: 'BSP',
+        data: series.BSP,
+        borderColor: '#3B82F6',
+        backgroundColor: '#3B82F633',
+        fill: true,
+        tension: 0.3,
+      },
+      series['Shiv Sena'] && {
+        label: 'Shiv Sena',
+        data: series['Shiv Sena'],
+        borderColor: '#F97316',
+        backgroundColor: '#F9731633',
+        fill: true,
+        tension: 0.3,
+      },
+      series.BJD && {
+        label: 'BJD',
+        data: series.BJD,
+        borderColor: '#10B981',
+        backgroundColor: '#10B98133',
+        fill: true,
+        tension: 0.3,
+      },
+      series.YSRCP && {
+        label: 'YSRCP',
+        data: series.YSRCP,
+        borderColor: '#7C3AED',
+        backgroundColor: '#7C3AED33',
+        fill: true,
+        tension: 0.3,
+      },
+      series.BRS && {
+        label: 'BRS',
+        data: series.BRS,
+        borderColor: '#EC4899',
+        backgroundColor: '#EC489933',
+        fill: true,
+        tension: 0.3,
+      },
+      series['CPI(M)'] && {
+        label: 'CPI(M)',
+        data: series['CPI(M)'],
+        borderColor: '#B91C1C',
+        backgroundColor: '#B91C1C33',
+        fill: true,
+        tension: 0.3,
+      },
+      series['JD(S)'] && {
+        label: 'JD(S)',
+        data: series['JD(S)'],
+        borderColor: '#65A30D',
+        backgroundColor: '#65A30D33',
+        fill: true,
+        tension: 0.3,
+      },
       series.Others && {
         label: 'Others',
         data: series.Others,
@@ -175,10 +239,18 @@ export function SpendPieChart({ totals = {} }) {
     VIP: '#0891B2',
     AIMIM: '#14532D',
     DMK: '#DC2626',
-    AITC: '#16A34A',
+    AITC: '#14B8A6',
     NCP: '#2563EB',
     TDP: '#FBBF24',
     AIADMK: '#059669',
+    SP: '#E11D48',
+    BSP: '#3B82F6',
+    'Shiv Sena': '#F97316',
+    BJD: '#10B981',
+    YSRCP: '#7C3AED',
+    BRS: '#EC4899',
+    'CPI(M)': '#B91C1C',
+    'JD(S)': '#65A30D',
     Others: '#64748B'
   }
 
@@ -214,16 +286,18 @@ export function SpendPieChart({ totals = {} }) {
 
   return (
     <div className="flex items-center justify-center h-64">
-      <div className="w-2/3">
+      <div className="w-1/2">
         <Doughnut data={data} options={options} />
       </div>
-      <div className="w-1/3 space-y-2 text-sm ml-4">
-        {labels.map((label, i) => (
-          <div className="flex items-center" key={label}>
-            <div className="w-3 h-3 rounded-full mr-2" style={{ backgroundColor: colors[i] }} />
-            <span>{label}</span>
-          </div>
-        ))}
+      <div className="w-1/2 h-full overflow-y-auto ml-4">
+        <div className="grid grid-cols-2 gap-x-3 gap-y-1.5 text-xs">
+          {labels.map((label, i) => (
+            <div className="flex items-center" key={label}>
+              <div className="w-2.5 h-2.5 rounded-full mr-1.5 flex-shrink-0" style={{ backgroundColor: colors[i] }} />
+              <span className="truncate">{label}</span>
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   )

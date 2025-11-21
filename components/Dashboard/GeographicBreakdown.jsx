@@ -37,9 +37,6 @@ export default function GeographicBreakdown({ data = [] }) {
                 <span className="text-sm font-medium text-slate-700 dark:text-slate-300 min-w-[120px]">
                   {state.state}
                 </span>
-                <span className={`inline-block px-2 py-0.5 rounded text-xs font-semibold text-white ${partyColors[state.dominantParty]}`}>
-                  {state.dominantParty}
-                </span>
               </div>
               <div className="flex items-center gap-3">
                 <span className="text-xs text-slate-500 dark:text-slate-400">
