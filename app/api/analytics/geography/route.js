@@ -3,6 +3,8 @@ import { query } from '@/lib/db';
 import { classifyParty, formatCurrency } from '@/lib/partyUtils';
 import { INDIAN_STATES, normalizeStateName } from '@/lib/geoUtils';
 
+export const dynamic = 'force-dynamic';
+
 export async function GET(request) {
   try {
     const { searchParams } = new URL(request.url);
