@@ -20,6 +20,9 @@ export async function GET(request) {
       
       startDate = thirtyDaysAgo.toISOString().split('T')[0];
       endDate = today.toISOString().split('T')[0];
+      console.log(`✅ Dashboard API: Using default 30-day range: ${startDate} to ${endDate}`);
+    } else {
+      console.log(`✅ Dashboard API: Using provided date range: ${startDate || 'none'} to ${endDate || 'none'}`);
     }
 
     // Run all queries in parallel for maximum performance
@@ -91,14 +94,20 @@ async function getStats(startDate, endDate, state, party) {
     `;
   }
 
-  if (startDate) {
-    queryText += ` AND a.ad_delivery_start_time >= $${paramCount}`;
+  // Filter for ads active during the date range (started before end date, ended after start date)
+  if (startDate && endDate) {
+    queryText += ` AND a.ad_delivery_start_time <= $${paramCount}`;
+    params.push(endDate);
+    paramCount++;
+    queryText += ` AND a.ad_delivery_stop_time >= $${paramCount}`;
     params.push(startDate);
     paramCount++;
-  }
-
-  if (endDate) {
-    queryText += ` AND a.ad_delivery_stop_time <= $${paramCount}`;
+  } else if (startDate) {
+    queryText += ` AND a.ad_delivery_stop_time >= $${paramCount}`;
+    params.push(startDate);
+    paramCount++;
+  } else if (endDate) {
+    queryText += ` AND a.ad_delivery_start_time <= $${paramCount}`;
     params.push(endDate);
     paramCount++;
   }
@@ -194,14 +203,20 @@ async function getTopAdvertisers(startDate, endDate, state, party, limit) {
     `;
   }
 
-  if (startDate) {
-    queryText += ` AND a.ad_delivery_start_time >= $${paramCount}`;
+  // Filter for ads active during the date range
+  if (startDate && endDate) {
+    queryText += ` AND a.ad_delivery_start_time <= $${paramCount}`;
+    params.push(endDate);
+    paramCount++;
+    queryText += ` AND a.ad_delivery_stop_time >= $${paramCount}`;
     params.push(startDate);
     paramCount++;
-  }
-
-  if (endDate) {
-    queryText += ` AND a.ad_delivery_stop_time <= $${paramCount}`;
+  } else if (startDate) {
+    queryText += ` AND a.ad_delivery_stop_time >= $${paramCount}`;
+    params.push(startDate);
+    paramCount++;
+  } else if (endDate) {
+    queryText += ` AND a.ad_delivery_start_time <= $${paramCount}`;
     params.push(endDate);
     paramCount++;
   }
@@ -257,14 +272,20 @@ async function getGeography(startDate, endDate, party, limit) {
   const params = [validStates];
   let paramCount = 2;
 
-  if (startDate) {
-    queryText += ` AND a.ad_delivery_start_time >= $${paramCount}`;
+  // Filter for ads active during the date range
+  if (startDate && endDate) {
+    queryText += ` AND a.ad_delivery_start_time <= $${paramCount}`;
+    params.push(endDate);
+    paramCount++;
+    queryText += ` AND a.ad_delivery_stop_time >= $${paramCount}`;
     params.push(startDate);
     paramCount++;
-  }
-
-  if (endDate) {
-    queryText += ` AND a.ad_delivery_stop_time <= $${paramCount}`;
+  } else if (startDate) {
+    queryText += ` AND a.ad_delivery_stop_time >= $${paramCount}`;
+    params.push(startDate);
+    paramCount++;
+  } else if (endDate) {
+    queryText += ` AND a.ad_delivery_start_time <= $${paramCount}`;
     params.push(endDate);
     paramCount++;
   }
