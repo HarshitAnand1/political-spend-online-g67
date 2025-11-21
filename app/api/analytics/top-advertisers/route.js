@@ -66,7 +66,7 @@ export async function GET(request) {
     // Calculate total spend for percentage
     const totalSpend = result.rows.reduce((sum, row) => sum + parseFloat(row.total_spend || 0), 0);
 
-    // Map and classify advertisers, filtering out non-political advertisers
+    // Map and classify advertisers, filtering out non-political advertisers and "Others"
     let advertisers = result.rows
       .filter(row => !isNonPoliticalAdvertiser(row.bylines)) // Exclude non-political advertisers
       .map(row => {
@@ -83,12 +83,16 @@ export async function GET(request) {
           impressions: parseInt(row.total_impressions || 0),
           percentage: totalSpend > 0 ? ((spend / totalSpend) * 100).toFixed(1) : '0'
         };
-      });
+      })
+      .filter(ad => ad.party !== 'Others'); // Exclude "Others" party
 
     // Filter by party if specified
     if (party && party !== 'All Parties') {
       advertisers = advertisers.filter(ad => ad.party === party);
     }
+
+    // Limit to top 10
+    advertisers = advertisers.slice(0, 10);
 
     return NextResponse.json({
       advertisers,
@@ -187,15 +191,16 @@ async function getTopAdvertisersFromDailySpend(startDate, endDate, state, party,
           impressions: parseInt(row.total_impressions || 0),
           percentage: '0' // Will be calculated after total is known
         };
-      });
+      })
+      .filter(ad => ad.party !== 'Others'); // Exclude "Others" party
 
     // Filter by party if specified
     if (party && party !== 'All Parties') {
       advertisers = advertisers.filter(ad => ad.party === party);
     }
 
-    // Limit to requested number after filtering
-    advertisers = advertisers.slice(0, limit);
+    // Limit to top 10
+    advertisers = advertisers.slice(0, 10);
 
     // Calculate percentages
     advertisers.forEach(ad => {
