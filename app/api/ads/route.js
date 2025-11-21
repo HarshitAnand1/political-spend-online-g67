@@ -217,7 +217,11 @@ export async function GET(request) {
       }
     }
 
-    return NextResponse.json({ ads: filteredAds, total: filteredAds.length, offset, limit });
+    return NextResponse.json({ ads: filteredAds, total: filteredAds.length, offset, limit }, {
+      headers: {
+        'Cache-Control': 'public, s-maxage=30, stale-while-revalidate=60'
+      }
+    });
 
   } catch (error) {
     console.error('Error fetching ads:', error);

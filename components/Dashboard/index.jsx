@@ -34,20 +34,15 @@ export default function Dashboard() {
       params.append('endDate', format(filters.dateRange[1], 'yyyy-MM-dd'))
     }
     
-    // Fetch all dashboard APIs with filters
-    Promise.all([
-      fetch(`/api/stats?${params}`).then(r => r.json()),
-      fetch(`/api/analytics/spend?${params}`).then(r => r.json()),
-      fetch(`/api/analytics/trends?${params}`).then(r => r.json()),
-      fetch(`/api/analytics/top-advertisers?${params}&limit=10`).then(r => r.json()),
-      fetch(`/api/analytics/geography?${params}&limit=10`).then(r => r.json())
-    ])
-      .then(([statsData, spendResponse, trendsResponse, topAdsData, geoResponse]) => {
-        setStats(statsData || { totalAds: 0, totalPages: 0, totalSpend: 0, partyBreakdown: {} })
-        setSpendData(spendResponse.spendData || {})
-        setLineSeries(trendsResponse.lineSeries || { labels: [], BJP: [], INC: [], AAP: [], Others: [] })
-        setTopAdvertisers(topAdsData.advertisers || [])
-        setGeoData(geoResponse.states || [])
+    // OPTIMIZED: Single API call instead of 5 separate calls
+    fetch(`/api/dashboard?${params}`)
+      .then(r => r.json())
+      .then(data => {
+        setStats(data.stats || { totalAds: 0, totalPages: 0, totalSpend: 0, partyBreakdown: {} })
+        setSpendData(data.stats?.partyBreakdown || {})
+        setLineSeries(data.trends || { labels: [], BJP: [], INC: [], AAP: [], Others: [] })
+        setTopAdvertisers(data.topAdvertisers || [])
+        setGeoData(data.geography || [])
       })
       .catch(error => {
         console.error('Error fetching dashboard data:', error)
