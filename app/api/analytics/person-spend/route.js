@@ -142,7 +142,7 @@ async function getPersonSpendFromDailySpend(startDate, endDate, state, person) {
       const stateQuery = `
         SELECT DISTINCT a.page_id
         FROM unified.all_ads a
-        JOIN unified.all_ad_regions r ON a.id = r.ad_id AND LOWER(a.platform) = r.platform
+        JOIN unified.all_ad_regions r ON CAST(a.id AS TEXT) = r.ad_id AND LOWER(a.platform) = r.platform
         WHERE r.region = $1
       `;
       const stateResult = await query(stateQuery, [state]);
