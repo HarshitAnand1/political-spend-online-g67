@@ -3,6 +3,8 @@ import { query } from '@/lib/db';
 import { classifyParty, isThirdPartyAdvertiser } from '@/lib/partyUtils';
 import { statsCache } from '@/lib/cache';
 
+export const dynamic = 'force-dynamic';
+
 export async function GET(request) {
   try {
     const { searchParams } = new URL(request.url);

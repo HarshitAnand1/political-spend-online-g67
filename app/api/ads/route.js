@@ -1,6 +1,9 @@
+
 import { NextResponse } from 'next/server';
 import { query } from '@/lib/db';
 import { classifyParty, formatSpendRange } from '@/lib/partyUtils';
+
+export const dynamic = 'force-dynamic';
 
 export async function GET(request) {
   try {
