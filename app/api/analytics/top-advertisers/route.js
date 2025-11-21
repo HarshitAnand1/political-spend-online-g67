@@ -33,7 +33,7 @@ export async function GET(request) {
           SUM((a.spend_lower + a.spend_upper) / 2 * COALESCE(r.spend_percentage, 1)) as total_spend
         FROM unified.all_ads a
         LEFT JOIN unified.all_pages p ON a.page_id = p.page_id AND a.platform = p.platform
-        LEFT JOIN unified.all_ad_regions r ON a.id = r.ad_id AND LOWER(a.platform) = r.platform
+        LEFT JOIN unified.all_ad_regions r ON CAST(a.id AS TEXT) = r.ad_id AND LOWER(a.platform) = r.platform
         WHERE r.region = $${paramCount}
       `;
       params.push(state);
