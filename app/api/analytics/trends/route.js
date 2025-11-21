@@ -43,7 +43,7 @@ export async function GET(request) {
         a.platform
       FROM unified.all_ads a
       LEFT JOIN unified.all_pages p ON a.page_id = p.page_id AND a.platform = p.platform
-      WHERE a.id = ANY($1)
+      WHERE CAST(a.id AS TEXT) = ANY($1::text[])
     `;
     const adInfoResult = await query(adInfoQuery, [adIds]);
 

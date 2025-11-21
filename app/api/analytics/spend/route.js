@@ -29,7 +29,7 @@ export async function GET(request) {
           r.spend_percentage
         FROM unified.all_ads a
         LEFT JOIN unified.all_pages p ON a.page_id = p.page_id AND a.platform = p.platform
-        LEFT JOIN meta_ads.ads m ON a.id = m.id AND a.platform = 'Meta'
+        LEFT JOIN meta_ads.ads m ON a.id = CAST(m.id AS TEXT) AND a.platform = 'Meta'
         LEFT JOIN unified.all_ad_regions r ON CAST(a.id AS TEXT) = r.ad_id AND LOWER(a.platform) = r.platform AND a.platform = 'Meta'
         WHERE (r.region = $${paramCount} OR a.platform != 'Meta')
       `;
@@ -46,7 +46,7 @@ export async function GET(request) {
           a.platform
         FROM unified.all_ads a
         LEFT JOIN unified.all_pages p ON a.page_id = p.page_id AND a.platform = p.platform
-        LEFT JOIN meta_ads.ads m ON a.id = m.id AND a.platform = 'Meta'
+        LEFT JOIN meta_ads.ads m ON a.id = CAST(m.id AS TEXT) AND a.platform = 'Meta'
         WHERE 1=1
       `;
     }

@@ -38,7 +38,7 @@ export async function GET(request) {
         a.impressions_upper,
         r.spend_percentage
       FROM unified.all_ad_regions r
-      JOIN unified.all_ads a ON r.ad_id = a.id AND r.platform = LOWER(a.platform)
+      JOIN unified.all_ads a ON r.ad_id = CAST(a.id AS TEXT) AND r.platform = LOWER(a.platform)
       LEFT JOIN unified.all_pages p ON a.page_id = p.page_id AND a.platform = p.platform
       WHERE 1=1
     `;
