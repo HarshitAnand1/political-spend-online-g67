@@ -1,0 +1,19 @@
+# AWS Elastic Beanstalk / Lambda Configuration Hints
+# 
+# For AWS deployment, ensure these environment variables are set:
+# - DATABASE_URL: PostgreSQL connection string
+# - NODE_ENV: production
+# - AWS_REGION: your AWS region
+#
+# Connection pool will automatically optimize for serverless when:
+# - AWS_LAMBDA_FUNCTION_NAME is set (Lambda)
+# - VERCEL is set (Vercel)
+#
+# Recommended AWS services:
+# - Elastic Beanstalk (Node.js platform)
+# - RDS PostgreSQL (for database)
+# - ElastiCache Redis (for caching - optional)
+#
+# Memory recommendations:
+# - Lambda: 1024 MB minimum
+# - Timeout: 30 seconds minimum
