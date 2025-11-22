@@ -91,22 +91,34 @@ export async function GET(request) {
     });
 
     // Second query: Get party breakdown for these regions
+    // Optimized with LIMIT to prevent timeout
     if (Object.keys(regionMap).length > 0) {
-      const regionNames = Object.keys(regionMap);
+      const regionNames = Object.keys(regionMap).slice(0, 15); // Only get party breakdown for top 15 regions
       const partyQueryText = `
+        WITH regional_ads AS (
+          SELECT
+            r.region,
+            a.page_id,
+            a.platform,
+            ((a.spend_lower + a.spend_upper) / 2) * COALESCE(r.spend_percentage, 1) as ad_spend
+          FROM unified.all_ad_regions r
+          JOIN unified.all_ads a ON r.ad_id = CAST(a.id AS TEXT) AND r.platform = LOWER(a.platform)
+          WHERE r.region = ANY($${paramCount}::text[])
+          ${startDate && endDate ? `AND a.ad_delivery_start_time <= $${paramCount + 1} AND (a.ad_delivery_stop_time >= $${paramCount + 2} OR a.ad_delivery_stop_time IS NULL)` : ''}
+          ${startDate && !endDate ? `AND (a.ad_delivery_stop_time >= $${paramCount + 1} OR a.ad_delivery_stop_time IS NULL)` : ''}
+          ${endDate && !startDate ? `AND a.ad_delivery_start_time <= $${paramCount + 1}` : ''}
+          LIMIT 50000
+        )
         SELECT
-          r.region,
-          a.page_id,
+          ra.region,
+          ra.page_id,
           p.page_name as bylines,
-          SUM(((a.spend_lower + a.spend_upper) / 2) * COALESCE(r.spend_percentage, 1)) as total_spend
-        FROM unified.all_ad_regions r
-        JOIN unified.all_ads a ON r.ad_id = CAST(a.id AS TEXT) AND r.platform = LOWER(a.platform)
-        LEFT JOIN unified.all_pages p ON a.page_id = p.page_id AND a.platform = p.platform
-        WHERE r.region = ANY($${paramCount}::text[])
-        ${startDate && endDate ? `AND a.ad_delivery_start_time <= $${paramCount + 1} AND (a.ad_delivery_stop_time >= $${paramCount + 2} OR a.ad_delivery_stop_time IS NULL)` : ''}
-        ${startDate && !endDate ? `AND (a.ad_delivery_stop_time >= $${paramCount + 1} OR a.ad_delivery_stop_time IS NULL)` : ''}
-        ${endDate && !startDate ? `AND a.ad_delivery_start_time <= $${paramCount + 1}` : ''}
-        GROUP BY r.region, a.page_id, p.page_name
+          SUM(ra.ad_spend) as total_spend
+        FROM regional_ads ra
+        LEFT JOIN unified.all_pages p ON ra.page_id = p.page_id AND ra.platform = p.platform
+        GROUP BY ra.region, ra.page_id, p.page_name
+        ORDER BY total_spend DESC
+        LIMIT 5000
       `;
 
       const partyParams = [regionNames];
